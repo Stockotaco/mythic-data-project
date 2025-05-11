@@ -1,0 +1,9 @@
+name = "mythic-data-admin"
+main = "src/index.js"
+compatibility_date = "2024-03-20"
+
+compatibility_flags = [ "nodejs_compat" ]
+
+routes = [
+  { pattern = "admin.mythicdata.io", custom_domain = true }
+]

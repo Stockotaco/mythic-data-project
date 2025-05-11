@@ -1,0 +1,23 @@
+name = "mythic-data-webhook-receiver"
+main = "src/index.js"
+compatibility_date = "2025-05-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[durable_objects.bindings]]
+name = "WEBHOOK_DEDUP"
+class_name = "WebhookDeduplicator"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["WebhookDeduplicator"]
+
+[[queues.producers]]
+queue = "events"
+binding = "EVENTS_QUEUE"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[routes]]
+pattern = "ingest.mythicdata.io/*"
+zone_name = "mythicdata.io" 

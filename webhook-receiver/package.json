@@ -1,0 +1,16 @@
+{
+    "name": "mythic-data-webhook-receiver",
+    "version": "1.0.0",
+    "description": "Webhook receiver and queue producer for CRM and order events",
+    "main": "src/index.js",
+    "scripts": {
+        "dev": "wrangler dev",
+        "deploy": "wrangler deploy"
+    },
+    "dependencies": {
+        "hono": "^3.12.8"
+    },
+    "devDependencies": {
+        "wrangler": "^3.28.1"
+    }
+}

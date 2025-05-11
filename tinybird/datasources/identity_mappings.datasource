@@ -1,0 +1,14 @@
+DESCRIPTION >
+    Stores mappings between anonymous IDs and identified user IDs with location-based isolation
+
+SCHEMA >
+    `anonymous_id` String `json:$.anonymous_id`,
+    `user_id` String `json:$.user_id`,
+    `location_id` String `json:$.location_id`,
+    `first_seen` DateTime64(6) `json:$.first_seen`,
+    `last_seen` DateTime64(6) `json:$.last_seen`,
+    `created_at` DateTime64(6) `json:$.created_at` DEFAULT now64(6)
+
+ENGINE "ReplacingMergeTree"
+ENGINE_SORTING_KEY "location_id, user_id, anonymous_id"
+ENGINE_PARTITION_KEY "location_id" 

@@ -1,0 +1,88 @@
+DESCRIPTION >
+    Pipeline to populate the daily session stats materialized view.
+    Properly isolated by location_id for multi-tenant security.
+
+NODE calculate_daily_session_stats
+SQL >
+    WITH
+        utm_sources AS (
+            SELECT
+                toDate(session_start) as date,
+                location_id,
+                first_utm_source,
+                count() as source_count
+            FROM sessions_mv
+            WHERE first_utm_source IS NOT NULL
+            GROUP BY date, location_id, first_utm_source
+        ),
+        
+        utm_mediums AS (
+            SELECT
+                toDate(session_start) as date,
+                location_id,
+                first_utm_medium,
+                count() as medium_count
+            FROM sessions_mv
+            WHERE first_utm_medium IS NOT NULL
+            GROUP BY date, location_id, first_utm_medium
+        ),
+        
+        utm_campaigns AS (
+            SELECT
+                toDate(session_start) as date,
+                location_id,
+                first_utm_campaign,
+                count() as campaign_count
+            FROM sessions_mv
+            WHERE first_utm_campaign IS NOT NULL
+            GROUP BY date, location_id, first_utm_campaign
+        ),
+        
+        top_sources AS (
+            SELECT
+                date,
+                location_id,
+                argMax(first_utm_source, source_count) as top_utm_source
+            FROM utm_sources
+            GROUP BY date, location_id
+        ),
+        
+        top_mediums AS (
+            SELECT
+                date,
+                location_id,
+                argMax(first_utm_medium, medium_count) as top_utm_medium
+            FROM utm_mediums
+            GROUP BY date, location_id
+        ),
+        
+        top_campaigns AS (
+            SELECT
+                date,
+                location_id,
+                argMax(first_utm_campaign, campaign_count) as top_utm_campaign
+            FROM utm_campaigns
+            GROUP BY date, location_id
+        )
+    
+    SELECT
+        toDate(s.session_start) as date,
+        s.location_id as location_id,
+        count() as session_count,
+        countIf(s.became_identified = 1) as identified_session_count,
+        round(avg(s.session_duration_seconds), 2) as avg_session_duration,
+        round(avg(s.pageview_count), 2) as avg_pageviews_per_session,
+        countIf(s.first_utm_source IS NOT NULL OR s.first_utm_medium IS NOT NULL OR s.first_utm_campaign IS NOT NULL OR s.entry_referrer IS NOT NULL) as sessions_with_attribution_count,
+        countIf(s.first_utm_source IS NOT NULL OR s.first_utm_medium IS NOT NULL OR s.first_utm_campaign IS NOT NULL) as sessions_with_utm_count,
+        countIf(s.entry_referrer IS NOT NULL) as sessions_with_referrer_count,
+        any(ts.top_utm_source) as top_utm_source,
+        any(tm.top_utm_medium) as top_utm_medium,
+        any(tc.top_utm_campaign) as top_utm_campaign
+    FROM sessions_mv as s
+    LEFT JOIN top_sources ts ON toDate(s.session_start) = ts.date AND s.location_id = ts.location_id
+    LEFT JOIN top_mediums tm ON toDate(s.session_start) = tm.date AND s.location_id = tm.location_id
+    LEFT JOIN top_campaigns tc ON toDate(s.session_start) = tc.date AND s.location_id = tc.location_id
+    GROUP BY date, location_id
+
+TYPE materialized
+DATASOURCE session_stats_daily_data 

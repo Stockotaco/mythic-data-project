@@ -1,0 +1,25 @@
+DESCRIPTION >
+    API endpoint to monitor errors across locations or for a specific location
+
+NODE hourly_errors
+SQL >
+    %
+    SELECT 
+        location_id,
+        error_type,
+        toStartOfHour(timestamp) as hour,
+        count() as error_count,
+        groupArray(10)(message) as sample_messages
+    FROM errors
+    WHERE timestamp >= toDateTime({{String(start_date, '2023-01-01 00:00:00')}})
+    AND timestamp <= toDateTime({{String(end_date, '2023-12-31 23:59:59')}})
+    {% if defined(location_id) %}
+    AND location_id = {{String(location_id)}}
+    {% end %}
+    {% if defined(error_type) %}
+    AND error_type = {{String(error_type)}}
+    {% end %}
+    GROUP BY location_id, error_type, hour
+    ORDER BY hour DESC, error_count DESC
+
+TYPE endpoint 

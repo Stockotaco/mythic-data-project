@@ -1,0 +1,109 @@
+DESCRIPTION >
+    API endpoint to retrieve first and most recent attribution data for a given user (anonymous or identified),
+    incorporating identity mapping to provide a complete view across all of a user's sessions.
+    Requires location_id for multi-tenant isolation.
+
+NODE get_user_attribution
+SQL >
+    %
+    WITH 
+        -- Get all anonymous IDs for the given user_id
+        anonymous_ids AS (
+            SELECT anonymous_id 
+            FROM identity_mappings 
+            WHERE user_id = {{String(user_id, '')}}
+            AND location_id = {{String(location_id, required=True)}}
+        ),
+        
+        -- Include the user_id itself in the list of distinct_ids to query
+        all_ids AS (
+            {% if defined(user_id) %}
+                SELECT anonymous_id AS distinct_id FROM anonymous_ids
+                UNION ALL
+                SELECT {{String(user_id, '')}} AS distinct_id
+            {% else %}
+                SELECT {{String(distinct_id, required=True)}} AS distinct_id
+            {% end %}
+        ),
+        
+        -- Find all events for this user
+        user_events AS (
+            SELECT 
+                timestamp,
+                distinct_id,
+                session_id,
+                
+                -- Attribution data
+                utm_source,
+                utm_medium,
+                utm_campaign,
+                utm_content,
+                utm_term,
+                gclid,
+                fbclid,
+                msclkid,
+                referrer,
+                referring_domain,
+                
+                -- Session entry data
+                session_entry_utm_source,
+                session_entry_utm_medium,
+                session_entry_utm_campaign,
+                session_entry_utm_content,
+                session_entry_utm_term,
+                session_entry_referrer,
+                session_entry_referring_domain
+            FROM events
+            WHERE distinct_id IN (SELECT distinct_id FROM all_ids)
+            AND location_id = {{String(location_id, required=True)}}
+            {% if defined(date_from) %}
+            AND timestamp >= toDateTime({{String(date_from)}})
+            {% end %}
+            {% if defined(date_to) %}
+            AND timestamp <= toDateTime({{String(date_to)}})
+            {% end %}
+        )
+        
+    SELECT
+        -- First attribution data (across all sessions)
+        argMin(utm_source, timestamp) as first_utm_source,
+        argMin(utm_medium, timestamp) as first_utm_medium, 
+        argMin(utm_campaign, timestamp) as first_utm_campaign,
+        argMin(utm_content, timestamp) as first_utm_content,
+        argMin(utm_term, timestamp) as first_utm_term,
+        argMin(gclid, timestamp) as first_gclid,
+        argMin(fbclid, timestamp) as first_fbclid,
+        argMin(msclkid, timestamp) as first_msclkid,
+        argMin(referrer, timestamp) as first_referrer,
+        argMin(referring_domain, timestamp) as first_referring_domain,
+        
+        -- Most recent attribution data
+        argMax(utm_source, timestamp) as recent_utm_source,
+        argMax(utm_medium, timestamp) as recent_utm_medium,
+        argMax(utm_campaign, timestamp) as recent_utm_campaign,
+        argMax(utm_content, timestamp) as recent_utm_content,
+        argMax(utm_term, timestamp) as recent_utm_term,
+        argMax(gclid, timestamp) as recent_gclid,
+        argMax(fbclid, timestamp) as recent_fbclid,
+        argMax(msclkid, timestamp) as recent_msclkid,
+        argMax(referrer, timestamp) as recent_referrer,
+        argMax(referring_domain, timestamp) as recent_referring_domain,
+        
+        -- First session entry data
+        min(session_entry_utm_source) as first_session_utm_source,
+        min(session_entry_utm_medium) as first_session_utm_medium,
+        min(session_entry_utm_campaign) as first_session_utm_campaign,
+        min(session_entry_utm_content) as first_session_utm_content,
+        min(session_entry_utm_term) as first_session_utm_term,
+        min(session_entry_referrer) as first_session_referrer,
+        min(session_entry_referring_domain) as first_session_referring_domain,
+        
+        -- Session stats
+        count(DISTINCT session_id) as session_count,
+        min(timestamp) as first_seen,
+        max(timestamp) as last_seen,
+        toInt32(dateDiff('day', min(timestamp), max(timestamp))) as days_between_first_last
+        
+    FROM user_events
+
+TYPE endpoint 

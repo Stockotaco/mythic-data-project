@@ -1,0 +1,25 @@
+DESCRIPTION >
+    API endpoint to get metrics for locations with filtering capabilities
+
+NODE get_location_metrics
+SQL >
+    %
+    SELECT 
+        location_id,
+        date,
+        event_count,
+        unique_users,
+        pageview_count,
+        identify_count,
+        autocapture_count,
+        events_per_user
+    FROM location_metrics_mv
+    WHERE date >= {{Date(start_date, '2023-01-01')}}
+    AND date <= {{Date(end_date, '2023-12-31')}}
+    {% if defined(location_id) %}
+    AND location_id = {{String(location_id)}}
+    {% end %}
+    ORDER BY date DESC, location_id ASC
+    LIMIT {{Int32(limit, 1000)}}
+
+TYPE endpoint 

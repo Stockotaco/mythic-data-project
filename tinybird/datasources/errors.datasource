@@ -1,0 +1,16 @@
+DESCRIPTION >
+    Error tracking data with location-based context for multi-tenant monitoring
+
+SCHEMA >
+    `timestamp` DateTime64(6) `json:$.timestamp`,
+    `location_id` String `json:$.location_id`,
+    `error_type` String `json:$.error_type`,
+    `message` String `json:$.message`,
+    `component` String `json:$.component`,
+    `user_id` Nullable(String) `json:$.user_id`,
+    `request_id` String `json:$.request_id`,
+    `created_at` DateTime64(6) `json:$.created_at` DEFAULT now64(6)
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"
+ENGINE_SORTING_KEY "location_id, error_type, timestamp" 

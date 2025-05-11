@@ -1,0 +1,15 @@
+DESCRIPTION >
+    Materialized view for location-level metrics
+
+SCHEMA >
+    `location_id` String,
+    `date` Date,
+    `event_count` UInt64,
+    `unique_users` UInt64,
+    `pageview_count` UInt64,
+    `identify_count` UInt64,
+    `autocapture_count` UInt64,
+    `events_per_user` Float64
+
+ENGINE "MergeTree"
+ENGINE_SORTING_KEY "location_id, date" 

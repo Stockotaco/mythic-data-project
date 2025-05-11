@@ -1,0 +1,47 @@
+DESCRIPTION >
+    Materialized view of session-level metrics for faster analytics queries.
+    Indexed by location_id to ensure multi-tenant query performance.
+
+NODE calculate_session_metrics
+SQL >
+    SELECT
+        e.session_id,
+        min(e.timestamp) as session_start,
+        max(e.timestamp) as session_end,
+        toInt32(dateDiff('second', min(e.timestamp), max(e.timestamp))) as session_duration_seconds,
+        e.location_id,
+        argMin(e.distinct_id, e.timestamp) as first_distinct_id,
+        argMax(e.distinct_id, e.timestamp) as last_distinct_id,
+        max(e.is_identified) as became_identified,
+        count() as event_count,
+        countIf(e.event = 'pageview') as pageview_count,
+        
+        -- First values (entry data)
+        argMin(e.current_url, e.timestamp) as entry_url,
+        argMin(e.host, e.timestamp) as entry_host,
+        argMin(e.pathname, e.timestamp) as entry_pathname,
+        argMin(e.referrer, e.timestamp) as entry_referrer,
+        argMin(e.referring_domain, e.timestamp) as entry_referring_domain,
+        
+        -- First attribution data
+        argMin(e.utm_source, e.timestamp) as first_utm_source,
+        argMin(e.utm_medium, e.timestamp) as first_utm_medium,
+        argMin(e.utm_campaign, e.timestamp) as first_utm_campaign,
+        argMin(e.utm_content, e.timestamp) as first_utm_content,
+        argMin(e.utm_term, e.timestamp) as first_utm_term,
+        
+        -- Last values (exit data)
+        argMax(e.current_url, e.timestamp) as exit_url,
+        argMax(e.pathname, e.timestamp) as exit_pathname,
+        
+        -- Device info
+        any(e.browser) as browser,
+        any(e.device_type) as device_type,
+        any(e.timezone) as timezone
+        
+    FROM events e
+    WHERE e.session_id IS NOT NULL
+    GROUP BY e.session_id, e.location_id
+
+TYPE materialized
+DATASOURCE sessions_mv 

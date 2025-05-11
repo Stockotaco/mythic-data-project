@@ -1,0 +1,15 @@
+name = "posthog-proxy"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+
+routes = [
+  { pattern = "p.mythicdata.io", custom_domain = true }
+]
+
+[[kv_namespaces]]
+binding = "LOCATION_PERMISSIONS"
+id = "a0ce6968118e487891252df2474e4eba"
+
+[vars]
+SUPABASE_URL="https://ggjpdbelozvvmxezdyrs.supabase.co"
+SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnanBkYmVsb3p2dm14ZXpkeXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3MDMyMywiZXhwIjoyMDYxNjQ2MzIzfQ.V6E4UGvxXMqANILkhCbpSMRox4z3_zTWRLUlZnYTSFo"

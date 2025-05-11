@@ -1,0 +1,26 @@
+DESCRIPTION >
+    Location-level metrics dashboard for multi-tenant monitoring
+
+NODE calculate_metrics
+SQL >
+    %
+    SELECT 
+        location_id,
+        toDate(timestamp) as date,
+        count() as event_count,
+        count(DISTINCT distinct_id) as unique_users,
+        countIf(event = 'pageview') as pageview_count,
+        countIf(event = '$identify') as identify_count,
+        countIf(event = '$autocapture') as autocapture_count,
+        if(unique_users > 0, round(event_count / unique_users, 2), 0) as events_per_user
+    FROM events
+    WHERE timestamp >= toDateTime({{String(start_date, '2023-01-01 00:00:00')}})
+    AND timestamp < toDateTime({{String(end_date, '2023-12-31 23:59:59')}})
+    {% if defined(location_id) %}
+    AND location_id = {{String(location_id)}}
+    {% end %}
+    GROUP BY location_id, date
+    ORDER BY location_id, date DESC
+
+TYPE materialized
+DATASOURCE location_metrics_mv 

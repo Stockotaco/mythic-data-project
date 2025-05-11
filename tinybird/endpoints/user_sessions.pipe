@@ -1,0 +1,71 @@
+DESCRIPTION >
+    API endpoint to retrieve session-level analytics data aggregated by session_id,
+    showing session start/end, attribution data, page information and engagement metrics.
+    Requires location_id for multi-tenant isolation.
+
+NODE get_sessions
+SQL >
+    %
+    WITH
+        filtered_events AS (
+            SELECT *
+            FROM events
+            WHERE location_id = {{String(location_id, required=True)}}
+            {% if defined(distinct_id) %}
+            AND distinct_id = {{String(distinct_id)}}
+            {% end %}
+            {% if defined(date_from) %}
+            AND timestamp >= toDateTime({{String(date_from)}})
+            {% end %}
+            {% if defined(date_to) %}
+            AND timestamp <= toDateTime({{String(date_to)}})
+            {% end %}
+            {% if defined(session_id) %}
+            AND session_id = {{String(session_id)}}
+            {% else %}
+            AND session_id IS NOT NULL
+            {% end %}
+        )
+    
+    SELECT
+        session_id,
+        min(timestamp) as session_start,
+        max(timestamp) as session_end,
+        toInt32(dateDiff('second', min(timestamp), max(timestamp))) as session_duration_seconds,
+        any(location_id) as location_id,
+        argMin(distinct_id, timestamp) as first_distinct_id,
+        argMax(distinct_id, timestamp) as last_distinct_id,
+        max(is_identified) as became_identified,
+        count() as event_count,
+        countIf(event = 'pageview') as pageview_count,
+        
+        -- First values (entry data)
+        argMin(current_url, timestamp) as entry_url,
+        argMin(host, timestamp) as entry_host,
+        argMin(pathname, timestamp) as entry_pathname,
+        argMin(referrer, timestamp) as entry_referrer,
+        argMin(referring_domain, timestamp) as entry_referring_domain,
+        
+        -- First attribution data
+        argMin(utm_source, timestamp) as first_utm_source,
+        argMin(utm_medium, timestamp) as first_utm_medium,
+        argMin(utm_campaign, timestamp) as first_utm_campaign,
+        argMin(utm_content, timestamp) as first_utm_content,
+        argMin(utm_term, timestamp) as first_utm_term,
+        
+        -- Last values (exit data)
+        argMax(current_url, timestamp) as exit_url,
+        argMax(pathname, timestamp) as exit_pathname,
+        
+        -- Device info
+        any(browser) as browser,
+        any(device_type) as device_type,
+        any(timezone) as timezone
+        
+    FROM filtered_events
+    GROUP BY session_id
+    ORDER BY session_start DESC
+    LIMIT {{Int32(limit, 100)}}
+    OFFSET {{Int32(offset, 0)}}
+
+TYPE endpoint 

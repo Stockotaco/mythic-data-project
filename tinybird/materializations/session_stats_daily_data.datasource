@@ -1,0 +1,20 @@
+DESCRIPTION >
+    Daily aggregated session metrics for reporting and dashboard use
+
+SCHEMA >
+    `date` Date,
+    `location_id` String,
+    `session_count` UInt32,
+    `identified_session_count` UInt32,
+    `avg_session_duration` Float32,
+    `avg_pageviews_per_session` Float32,
+    `sessions_with_attribution_count` UInt32,
+    `sessions_with_utm_count` UInt32,
+    `sessions_with_referrer_count` UInt32,
+    `top_utm_source` Nullable(String),
+    `top_utm_medium` Nullable(String),
+    `top_utm_campaign` Nullable(String)
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "toYYYYMM(date)"
+ENGINE_SORTING_KEY "location_id, date" 

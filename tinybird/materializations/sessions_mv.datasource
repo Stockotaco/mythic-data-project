@@ -1,0 +1,33 @@
+DESCRIPTION >
+    Materialized view of sessions for faster session analytics queries
+
+SCHEMA >
+    `session_id` String,
+    `session_start` DateTime64(6),
+    `session_end` DateTime64(6),
+    `session_duration_seconds` Int32,
+    `location_id` String,
+    `first_distinct_id` String,
+    `last_distinct_id` String,
+    `became_identified` UInt8,
+    `event_count` UInt64,
+    `pageview_count` UInt64,
+    `entry_url` Nullable(String),
+    `entry_host` Nullable(String),
+    `entry_pathname` Nullable(String),
+    `entry_referrer` Nullable(String),
+    `entry_referring_domain` Nullable(String),
+    `first_utm_source` Nullable(String),
+    `first_utm_medium` Nullable(String),
+    `first_utm_campaign` Nullable(String),
+    `first_utm_content` Nullable(String),
+    `first_utm_term` Nullable(String),
+    `exit_url` Nullable(String),
+    `exit_pathname` Nullable(String),
+    `browser` Nullable(String),
+    `device_type` Nullable(String),
+    `timezone` Nullable(String)
+
+ENGINE "MergeTree"
+ENGINE_PARTITION_KEY "toYYYYMMDD(session_start)"
+ENGINE_SORTING_KEY "location_id, session_id, session_start" 

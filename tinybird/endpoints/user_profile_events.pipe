@@ -1,0 +1,36 @@
+DESCRIPTION >
+    API endpoint to get merged person profiles with all their events across anonymous and identified sessions,
+    with multi-tenant isolation based on location_id
+
+NODE get_profile_events
+SQL >
+    %
+    WITH 
+        -- Get all anonymous IDs for the given user_id and location_id
+        anonymous_ids AS (
+            SELECT anonymous_id 
+            FROM identity_mappings 
+            WHERE user_id = {{String(user_id, '')}}
+            AND location_id = {{String(location_id, '')}}
+        ),
+        -- Include the user_id itself in the list of distinct_ids to query
+        all_ids AS (
+            SELECT anonymous_id AS distinct_id FROM anonymous_ids
+            UNION ALL
+            SELECT {{String(user_id, '')}} AS distinct_id
+        )
+    
+    SELECT 
+        uuid,
+        event,
+        properties,
+        timestamp,
+        distinct_id,
+        location_id
+    FROM events
+    WHERE distinct_id IN (SELECT distinct_id FROM all_ids)
+    AND location_id = {{String(location_id, '')}}
+    ORDER BY timestamp DESC
+    LIMIT {{Int32(limit, 1000)}}
+
+TYPE endpoint
