@@ -26,7 +26,64 @@ SQL >
         properties,
         timestamp,
         distinct_id,
-        location_id
+        location_id,
+        
+        -- Add more top-level fields
+        session_id,
+        funnel_id,
+        step_id,
+        funnel_name,
+        page_id,
+        affiliate_id,
+        
+        -- URL and referrer data
+        current_url,
+        host,
+        pathname,
+        referrer,
+        referring_domain,
+        pageview_id,
+        
+        -- Attribution data
+        utm_source,
+        utm_medium,
+        utm_campaign,
+        utm_content,
+        utm_term,
+        gclid,
+        gclsrc,
+        fbclid,
+        msclkid,
+        
+        -- Additional tracking IDs
+        dclid,
+        gbraid,
+        wbraid,
+        twclid,
+        li_fat_id,
+        igshid,
+        ttclid,
+        rdt_cid,
+        epik,
+        
+        -- Device info
+        browser,
+        device_type,
+        timezone,
+        is_identified,
+        
+        -- Session entry data
+        session_entry_referrer,
+        session_entry_referring_domain,
+        session_entry_url,
+        session_entry_host,
+        session_entry_pathname,
+        session_entry_utm_source,
+        session_entry_utm_medium,
+        session_entry_utm_campaign,
+        session_entry_utm_content,
+        session_entry_utm_term
+        
     FROM events
     WHERE location_id = {{String(location_id, required=True)}}
     {% if defined(distinct_id) %}

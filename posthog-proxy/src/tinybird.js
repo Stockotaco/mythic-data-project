@@ -121,7 +121,7 @@ export async function sendToTinyBird(jsonData, metadata) {
                 return {
                     uuid: event.uuid || crypto.randomUUID(),
                     event: event.event,
-                    properties: JSON.stringify(event.properties),
+                    properties: JSON.stringify(props), // Store the properties as a JSON string
                     timestamp: new Date(event.properties.$time * 1000).toISOString(),
                     distinct_id: event.properties.distinct_id || 'anonymous',
                     location_id: locationId,
@@ -201,13 +201,16 @@ export async function sendToTinyBird(jsonData, metadata) {
                 }
             })
 
+            // Format each object as JSON, then join with newlines for ndjson format
+            const ndjsonPayload = transformedData.map(obj => JSON.stringify(obj)).join('\n')
+
             // Send batch to TinyBird
             const response = await fetch(`${TINYBIRD_ENDPOINT}?name=events&token=${TINYBIRD_TOKEN}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: transformedData.map(obj => JSON.stringify(obj)).join('\n')
+                body: ndjsonPayload
             })
 
             if (!response.ok) {
