@@ -60,7 +60,13 @@ SQL >
         -- Device info
         any(browser) as browser,
         any(device_type) as device_type,
-        any(timezone) as timezone
+        any(timezone) as timezone,
+        
+        -- Funnel and page tracking
+        any(funnel_id) as funnel_id,
+        any(funnel_name) as funnel_name,
+        any(page_id) as page_id,
+        any(affiliate_id) as affiliate_id
         
     FROM filtered_events
     GROUP BY session_id

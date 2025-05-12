@@ -32,6 +32,10 @@ SQL >
         browser,
         device_type,
         timezone,
+        funnel_id,
+        funnel_name,
+        page_id,
+        affiliate_id,
         -- Add derived metrics
         if(pageview_count > 0, round(session_duration_seconds / pageview_count, 2), 0) as seconds_per_pageview,
         toDate(session_start) as session_date
@@ -57,6 +61,18 @@ SQL >
     {% end %}
     {% if defined(utm_campaign) %}
     AND first_utm_campaign = {{String(utm_campaign)}}
+    {% end %}
+    {% if defined(funnel_id) %}
+    AND funnel_id = {{String(funnel_id)}}
+    {% end %}
+    {% if defined(funnel_name) %}
+    AND funnel_name = {{String(funnel_name)}}
+    {% end %}
+    {% if defined(page_id) %}
+    AND page_id = {{String(page_id)}}
+    {% end %}
+    {% if defined(affiliate_id) %}
+    AND affiliate_id = {{String(affiliate_id)}}
     {% end %}
     {% if defined(min_duration) %}
     AND session_duration_seconds >= {{Int32(min_duration)}}

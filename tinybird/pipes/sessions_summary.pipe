@@ -37,7 +37,13 @@ SQL >
         -- Device info
         any(e.browser) as browser,
         any(e.device_type) as device_type,
-        any(e.timezone) as timezone
+        any(e.timezone) as timezone,
+        
+        -- Funnel and page tracking
+        any(e.funnel_id) as funnel_id,
+        any(e.funnel_name) as funnel_name,
+        any(e.page_id) as page_id,
+        any(e.affiliate_id) as affiliate_id
         
     FROM events e
     WHERE e.session_id IS NOT NULL

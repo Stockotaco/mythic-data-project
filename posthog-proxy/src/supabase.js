@@ -13,8 +13,8 @@ export async function checkLocationPermission(locationId, env) {
         // If not in cache, check Supabase
         const response = await fetch(`${env.SUPABASE_URL}/rest/v1/location_keys?id=eq.${locationId}&select=allow_posthog_proxy`, {
             headers: {
-                'apikey': env.SUPABASE_SERVICE_KEY,
-                'Authorization': `Bearer ${env.SUPABASE_SERVICE_KEY}`
+                'apikey': env.SUPABASE_KEY,
+                'Authorization': `Bearer ${env.SUPABASE_KEY}`
             }
         })
 

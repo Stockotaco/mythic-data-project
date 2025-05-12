@@ -63,6 +63,26 @@ SQL >
                 argMax(first_utm_campaign, campaign_count) as top_utm_campaign
             FROM utm_campaigns
             GROUP BY date, location_id
+        ),
+        
+        funnel_names AS (
+            SELECT
+                toDate(session_start) as date,
+                location_id,
+                funnel_name,
+                count() as funnel_count
+            FROM sessions_mv
+            WHERE funnel_name IS NOT NULL
+            GROUP BY date, location_id, funnel_name
+        ),
+        
+        top_funnels AS (
+            SELECT
+                date,
+                location_id,
+                argMax(funnel_name, funnel_count) as top_funnel_name
+            FROM funnel_names
+            GROUP BY date, location_id
         )
     
     SELECT
@@ -75,13 +95,16 @@ SQL >
         countIf(s.first_utm_source IS NOT NULL OR s.first_utm_medium IS NOT NULL OR s.first_utm_campaign IS NOT NULL OR s.entry_referrer IS NOT NULL) as sessions_with_attribution_count,
         countIf(s.first_utm_source IS NOT NULL OR s.first_utm_medium IS NOT NULL OR s.first_utm_campaign IS NOT NULL) as sessions_with_utm_count,
         countIf(s.entry_referrer IS NOT NULL) as sessions_with_referrer_count,
+        countIf(s.funnel_id IS NOT NULL OR s.funnel_name IS NOT NULL) as sessions_with_funnel_count,
         any(ts.top_utm_source) as top_utm_source,
         any(tm.top_utm_medium) as top_utm_medium,
-        any(tc.top_utm_campaign) as top_utm_campaign
+        any(tc.top_utm_campaign) as top_utm_campaign,
+        any(tf.top_funnel_name) as top_funnel_name
     FROM sessions_mv as s
     LEFT JOIN top_sources ts ON toDate(s.session_start) = ts.date AND s.location_id = ts.location_id
     LEFT JOIN top_mediums tm ON toDate(s.session_start) = tm.date AND s.location_id = tm.location_id
     LEFT JOIN top_campaigns tc ON toDate(s.session_start) = tc.date AND s.location_id = tc.location_id
+    LEFT JOIN top_funnels tf ON toDate(s.session_start) = tf.date AND s.location_id = tf.location_id
     GROUP BY date, location_id
 
 TYPE materialized

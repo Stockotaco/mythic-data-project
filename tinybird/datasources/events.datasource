@@ -10,6 +10,9 @@ SCHEMA >
     `location_id` String `json:$.location_id`,
     `funnel_id` Nullable(String) `json:$.funnel_id`,
     `step_id` Nullable(String) `json:$.step_id`,
+    `funnel_name` Nullable(String) `json:$.funnel_name`,
+    `page_id` Nullable(String) `json:$.page_id`,
+    `affiliate_id` Nullable(String) `json:$.affiliate_id`,
     `session_id` Nullable(String) `json:$.session_id`,
     `session_entry_referrer` Nullable(String) `json:$.session_entry_referrer`,
     `session_entry_referring_domain` Nullable(String) `json:$.session_entry_referring_domain`,
@@ -78,3 +81,6 @@ SCHEMA >
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMMDD(timestamp)"
 ENGINE_SORTING_KEY "timestamp, event, location_id, distinct_id"
+
+FORWARD_QUERY > 
+  SELECT uuid, event, properties, timestamp, distinct_id, location_id, funnel_id, step_id, defaultValueOfTypeName('Nullable(String)') AS funnel_name, defaultValueOfTypeName('Nullable(String)') AS page_id, defaultValueOfTypeName('Nullable(String)') AS affiliate_id, session_id, session_entry_referrer, session_entry_referring_domain, session_entry_url, session_entry_host, session_entry_pathname, utm_source, utm_medium, utm_campaign, utm_content, utm_term, gad_source, mc_cid, gclid, gclsrc, dclid, gbraid, wbraid, fbclid, msclkid, twclid, li_fat_id, igshid, ttclid, rdt_cid, epik, qclid, sccid, irclid, _kx, referrer, referring_domain, pageview_id, is_identified, session_entry_utm_source, session_entry_utm_medium, session_entry_utm_campaign, session_entry_utm_content, session_entry_utm_term, session_entry_gad_source, session_entry_mc_cid, session_entry_gclid, session_entry_gclsrc, session_entry_dclid, session_entry_gbraid, session_entry_wbraid, session_entry_fbclid, session_entry_msclkid, session_entry_twclid, session_entry_li_fat_id, session_entry_igshid, session_entry_ttclid, session_entry_rdt_cid, session_entry_epik, session_entry_qclid, session_entry_sccid, session_entry_irclid, session_entry__kx, browser, device_type, timezone, current_url, host, pathname

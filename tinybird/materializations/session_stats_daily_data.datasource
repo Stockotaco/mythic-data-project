@@ -13,7 +13,9 @@ SCHEMA >
     `sessions_with_referrer_count` UInt32,
     `top_utm_source` Nullable(String),
     `top_utm_medium` Nullable(String),
-    `top_utm_campaign` Nullable(String)
+    `top_utm_campaign` Nullable(String),
+    `sessions_with_funnel_count` UInt32,
+    `top_funnel_name` Nullable(String)
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(date)"

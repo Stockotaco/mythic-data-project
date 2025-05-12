@@ -26,7 +26,11 @@ SCHEMA >
     `exit_pathname` Nullable(String),
     `browser` Nullable(String),
     `device_type` Nullable(String),
-    `timezone` Nullable(String)
+    `timezone` Nullable(String),
+    `funnel_id` Nullable(String),
+    `funnel_name` Nullable(String),
+    `page_id` Nullable(String),
+    `affiliate_id` Nullable(String)
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMMDD(session_start)"

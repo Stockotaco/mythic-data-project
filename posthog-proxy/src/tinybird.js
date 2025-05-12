@@ -126,8 +126,11 @@ export async function sendToTinyBird(jsonData, metadata) {
                     distinct_id: event.properties.distinct_id || 'anonymous',
                     location_id: locationId,
                     // Funnel tracking fields
-                    funnel_id: props.$funnel_id || null,
-                    step_id: props.$step_id || null,
+                    funnel_id: props.funnel_id || null,
+                    step_id: props.step_id || null,
+                    funnel_name: props.funnel_name || null,
+                    page_id: props.page_id || null,
+                    affiliate_id: props.affiliate_id || null,
                     // New fields extracted from properties
                     session_id: props.$session_id || null,
                     session_entry_referrer: props.$session_entry_referrer || null,

@@ -12,4 +12,5 @@ id = "a0ce6968118e487891252df2474e4eba"
 
 [vars]
 SUPABASE_URL="https://ggjpdbelozvvmxezdyrs.supabase.co"
-SUPABASE_SERVICE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnanBkYmVsb3p2dm14ZXpkeXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3MDMyMywiZXhwIjoyMDYxNjQ2MzIzfQ.V6E4UGvxXMqANILkhCbpSMRox4z3_zTWRLUlZnYTSFo"
+# SUPABASE_KEY is stored as a secret
+# Use: wrangler secret put SUPABASE_KEY

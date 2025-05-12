@@ -15,15 +15,18 @@ SQL >
         sessions_with_attribution_count,
         sessions_with_utm_count,
         sessions_with_referrer_count,
+        sessions_with_funnel_count,
         top_utm_source,
         top_utm_medium,
         top_utm_campaign,
+        top_funnel_name,
         
         -- Calculated metrics
         round(identified_session_count / session_count, 4) * 100 as identified_session_percent,
         round(sessions_with_attribution_count / session_count, 4) * 100 as attributed_session_percent,
         round(sessions_with_utm_count / session_count, 4) * 100 as utm_session_percent,
-        round(sessions_with_referrer_count / session_count, 4) * 100 as referrer_session_percent
+        round(sessions_with_referrer_count / session_count, 4) * 100 as referrer_session_percent,
+        round(sessions_with_funnel_count / session_count, 4) * 100 as funnel_session_percent
         
     FROM session_stats_daily_data
     WHERE location_id = {{String(location_id, required=True)}}
