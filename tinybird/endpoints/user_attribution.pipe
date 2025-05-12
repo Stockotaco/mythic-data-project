@@ -7,24 +7,19 @@ NODE get_user_attribution
 SQL >
     %
     WITH 
-        -- Get all anonymous IDs for the given user_id
-        anonymous_ids AS (
-            SELECT anonymous_id 
+        {% if defined(distinct_id) %}
+        -- Get all anonymous IDs for the given distinct_id
+        user_ids AS (
+            -- Get all anonymous IDs mapped to this user_id
+            SELECT anonymous_id AS id 
             FROM identity_mappings 
-            WHERE user_id = {{String(user_id, '')}}
+            WHERE user_id = {{String(distinct_id)}}
             AND location_id = {{String(location_id, required=True)}}
+            UNION ALL
+            -- Include the distinct_id itself
+            SELECT {{String(distinct_id)}} AS id
         ),
-        
-        -- Include the user_id itself in the list of distinct_ids to query
-        all_ids AS (
-            {% if defined(user_id) %}
-                SELECT anonymous_id AS distinct_id FROM anonymous_ids
-                UNION ALL
-                SELECT {{String(user_id, '')}} AS distinct_id
-            {% else %}
-                SELECT {{String(distinct_id, required=True)}} AS distinct_id
-            {% end %}
-        ),
+        {% end %}
         
         -- Find all events for this user
         user_events AS (
@@ -54,8 +49,10 @@ SQL >
                 session_entry_referrer,
                 session_entry_referring_domain
             FROM events
-            WHERE distinct_id IN (SELECT distinct_id FROM all_ids)
-            AND location_id = {{String(location_id, required=True)}}
+            WHERE location_id = {{String(location_id, required=True)}}
+            {% if defined(distinct_id) %}
+            AND distinct_id IN (SELECT id FROM user_ids)
+            {% end %}
             {% if defined(date_from) %}
             AND timestamp >= toDateTime({{String(date_from)}})
             {% end %}

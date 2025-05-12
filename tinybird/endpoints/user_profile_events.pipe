@@ -5,20 +5,20 @@ DESCRIPTION >
 NODE get_profile_events
 SQL >
     %
+    {% if defined(distinct_id) %}
     WITH 
-        -- Get all anonymous IDs for the given user_id and location_id
-        anonymous_ids AS (
-            SELECT anonymous_id 
+        -- Get all anonymous IDs for the given distinct_id and location_id
+        user_ids AS (
+            -- Get all anonymous IDs mapped to this distinct_id
+            SELECT anonymous_id AS id 
             FROM identity_mappings 
-            WHERE user_id = {{String(user_id, '')}}
-            AND location_id = {{String(location_id, '')}}
-        ),
-        -- Include the user_id itself in the list of distinct_ids to query
-        all_ids AS (
-            SELECT anonymous_id AS distinct_id FROM anonymous_ids
+            WHERE user_id = {{String(distinct_id)}}
+            AND location_id = {{String(location_id, required=True)}}
             UNION ALL
-            SELECT {{String(user_id, '')}} AS distinct_id
+            -- Include the distinct_id itself
+            SELECT {{String(distinct_id)}} AS id
         )
+    {% end %}
     
     SELECT 
         uuid,
@@ -28,8 +28,10 @@ SQL >
         distinct_id,
         location_id
     FROM events
-    WHERE distinct_id IN (SELECT distinct_id FROM all_ids)
-    AND location_id = {{String(location_id, '')}}
+    WHERE location_id = {{String(location_id, required=True)}}
+    {% if defined(distinct_id) %}
+    AND distinct_id IN (SELECT id FROM user_ids)
+    {% end %}
     ORDER BY timestamp DESC
     LIMIT {{Int32(limit, 1000)}}
 
