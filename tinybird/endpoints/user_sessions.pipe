@@ -7,12 +7,24 @@ NODE get_sessions
 SQL >
     %
     WITH
+        {% if defined(distinct_id) %}
+        user_ids AS (
+            -- Get all anonymous IDs mapped to this user_id
+            SELECT anonymous_id AS id
+            FROM identity_mappings
+            WHERE user_id = {{String(distinct_id)}}
+            AND location_id = {{String(location_id, required=True)}}
+            UNION ALL
+            -- Include the distinct_id itself
+            SELECT {{String(distinct_id)}} AS id
+        ),
+        {% end %}
         filtered_events AS (
             SELECT *
             FROM events
             WHERE location_id = {{String(location_id, required=True)}}
             {% if defined(distinct_id) %}
-            AND distinct_id = {{String(distinct_id)}}
+            AND distinct_id IN (SELECT id FROM user_ids)
             {% end %}
             {% if defined(date_from) %}
             AND timestamp >= toDateTime({{String(date_from)}})

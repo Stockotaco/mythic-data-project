@@ -6,6 +6,19 @@ DESCRIPTION >
 NODE get_sessions_from_mv
 SQL >
     %
+    {% if defined(distinct_id) %}
+    WITH
+        user_ids AS (
+            -- Get all anonymous IDs mapped to this user_id
+            SELECT anonymous_id AS id 
+            FROM identity_mappings 
+            WHERE user_id = {{String(distinct_id)}}
+            AND location_id = {{String(location_id, required=True)}}
+            UNION ALL
+            -- Include the distinct_id itself
+            SELECT {{String(distinct_id)}} AS id
+        )
+    {% end %}
     SELECT
         session_id,
         session_start,
@@ -42,7 +55,7 @@ SQL >
     FROM sessions_mv
     WHERE location_id = {{String(location_id, required=True)}}
     {% if defined(distinct_id) %}
-    AND (first_distinct_id = {{String(distinct_id)}} OR last_distinct_id = {{String(distinct_id)}})
+    AND (first_distinct_id IN (SELECT id FROM user_ids) OR last_distinct_id IN (SELECT id FROM user_ids))
     {% end %}
     {% if defined(date_from) %}
     AND session_start >= toDateTime({{String(date_from)}})
