@@ -32,7 +32,25 @@ async function createOrUpdateCompany(companyId, companyName, accessToken, refres
             customer_type: companyDetails.customerType,
             date_added: companyDetails.dateAdded,
             status: companyDetails.status,
-            location_count: companyDetails.locationCount
+            location_count: companyDetails.locationCount,
+            phone: companyDetails.phone,
+            website: companyDetails.website,
+            domain: companyDetails.domain,
+            address: companyDetails.address,
+            city: companyDetails.city,
+            state: companyDetails.state,
+            country: companyDetails.country,
+            postal_code: companyDetails.postalCode,
+            logo_url: companyDetails.logoUrl,
+            subdomain: companyDetails.subdomain,
+            is_reselling: companyDetails.isReselling,
+            business_category: companyDetails.businessCategory,
+            business_niche: companyDetails.businessNiche,
+            default_sending_domain: companyDetails.defaultSendingDomain,
+            stripe_connect_id: companyDetails.stripeConnectId,
+            is_in_trial: companyDetails.isInTrial,
+            premium_upgraded: companyDetails.premiumUpgraded,
+            date_updated: companyDetails.dateUpdated
         }, {
             onConflict: 'id'
         })

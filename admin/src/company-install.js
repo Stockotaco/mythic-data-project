@@ -41,8 +41,27 @@ async function installCompany(c, tokens) {
                 currency: companyDetails.currency,
                 customerType: companyDetails.customerType,
                 dateAdded: companyDetails.dateAdded,
-                status: companyDetails.status,
-                locationCount: companyDetails.locationCount
+                status: true,
+                locationCount: companyDetails.locationCount,
+                // Additional fields
+                phone: companyDetails.phone,
+                website: companyDetails.website,
+                domain: companyDetails.domain,
+                address: companyDetails.address,
+                city: companyDetails.city,
+                state: companyDetails.state,
+                country: companyDetails.country,
+                postalCode: companyDetails.postalCode,
+                logoUrl: companyDetails.logoUrl,
+                subdomain: companyDetails.subdomain,
+                isReselling: companyDetails.isReselling,
+                businessCategory: companyDetails.businessCategory,
+                businessNiche: companyDetails.businessNiche,
+                defaultSendingDomain: companyDetails.defaultSendingDomain,
+                stripeConnectId: companyDetails.stripeConnectId,
+                isInTrial: companyDetails.isInTrial,
+                premiumUpgraded: companyDetails.premiumUpgraded,
+                dateUpdated: companyDetails.dateUpdated
             }
         )
 

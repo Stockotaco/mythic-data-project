@@ -1,0 +1,86 @@
+DESCRIPTION >
+    Materializes user profile data from events, including first and last touch attribution
+
+NODE user_profiles_materialization
+SQL >
+    SELECT 
+        distinct_id,
+        location_id,
+        minState(timestamp) as first_seen,
+        maxState(timestamp) as last_seen,
+        
+        -- First touch attribution (using argMinState to get value from first event)
+        argMinState(current_url, timestamp) as first_url,
+        argMinState(referrer, timestamp) as first_referrer,
+        argMinState(referring_domain, timestamp) as first_referring_domain,
+        argMinState(utm_source, timestamp) as first_utm_source,
+        argMinState(utm_medium, timestamp) as first_utm_medium,
+        argMinState(utm_campaign, timestamp) as first_utm_campaign,
+        argMinState(utm_content, timestamp) as first_utm_content,
+        argMinState(utm_term, timestamp) as first_utm_term,
+        
+        -- First touch click IDs
+        argMinState(gclid, timestamp) as first_gclid,
+        argMinState(fbclid, timestamp) as first_fbclid,
+        argMinState(msclkid, timestamp) as first_msclkid,
+        argMinState(twclid, timestamp) as first_twclid,
+        argMinState(dclid, timestamp) as first_dclid,
+        argMinState(gbraid, timestamp) as first_gbraid,
+        argMinState(wbraid, timestamp) as first_wbraid,
+        argMinState(li_fat_id, timestamp) as first_li_fat_id,
+        argMinState(igshid, timestamp) as first_igshid,
+        argMinState(ttclid, timestamp) as first_ttclid,
+        argMinState(rdt_cid, timestamp) as first_rdt_cid,
+        argMinState(epik, timestamp) as first_epik,
+        argMinState(qclid, timestamp) as first_qclid,
+        argMinState(sccid, timestamp) as first_sccid,
+        argMinState(irclid, timestamp) as first_irclid,
+        argMinState(_kx, timestamp) as first__kx,
+        
+        -- Last touch attribution (using argMaxState to get value from latest event)
+        argMaxState(current_url, timestamp) as last_url,
+        argMaxState(referrer, timestamp) as last_referrer,
+        argMaxState(referring_domain, timestamp) as last_referring_domain,
+        argMaxState(utm_source, timestamp) as last_utm_source,
+        argMaxState(utm_medium, timestamp) as last_utm_medium,
+        argMaxState(utm_campaign, timestamp) as last_utm_campaign,
+        argMaxState(utm_content, timestamp) as last_utm_content,
+        argMaxState(utm_term, timestamp) as last_utm_term,
+        
+        -- Last touch click IDs
+        argMaxState(gclid, timestamp) as last_gclid,
+        argMaxState(fbclid, timestamp) as last_fbclid,
+        argMaxState(msclkid, timestamp) as last_msclkid,
+        argMaxState(twclid, timestamp) as last_twclid,
+        argMaxState(dclid, timestamp) as last_dclid,
+        argMaxState(gbraid, timestamp) as last_gbraid,
+        argMaxState(wbraid, timestamp) as last_wbraid,
+        argMaxState(li_fat_id, timestamp) as last_li_fat_id,
+        argMaxState(igshid, timestamp) as last_igshid,
+        argMaxState(ttclid, timestamp) as last_ttclid,
+        argMaxState(rdt_cid, timestamp) as last_rdt_cid,
+        argMaxState(epik, timestamp) as last_epik,
+        argMaxState(qclid, timestamp) as last_qclid,
+        argMaxState(sccid, timestamp) as last_sccid,
+        argMaxState(irclid, timestamp) as last_irclid,
+        argMaxState(_kx, timestamp) as last__kx,
+        
+        -- Other profile data
+        anyState(device_type) as device_type,
+        anyState(browser) as browser,
+        anyState(timezone) as timezone,
+        
+        -- Identity status
+        maxState(multiIf(distinct_id IN (
+            SELECT user_id FROM identity_mappings WHERE location_id = events.location_id
+            UNION ALL
+            SELECT anonymous_id FROM identity_mappings WHERE location_id = events.location_id
+        ), 1, 0)) as identity_mapped,
+        maxState(if(is_identified, 1, 0)) as is_identified
+    FROM events
+    GROUP BY 
+        distinct_id,
+        location_id
+
+TYPE MATERIALIZED
+DATASOURCE user_profiles_mv 

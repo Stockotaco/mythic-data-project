@@ -1,6 +1,6 @@
 export const HIGHLEVEL_CONFIG = {
-    CLIENT_ID: '67c76e4d9eab9a839cb4f2c5-ma4srjvw',
-    CLIENT_SECRET: 'cd0e9f0d-a49d-4368-9da3-5810717bccf7',
+    CLIENT_ID: '6827fcaec3217895d84d469e-marnjhwd',
+    CLIENT_SECRET: 'f3c91894-2073-47ba-963c-0edb1193ccdf',
     REDIRECT_URI: 'https://admin.mythicdata.io/oauth/callback',
     AUTH_URL: 'https://marketplace.gohighlevel.com/oauth/chooselocation',
     TOKEN_URL: 'https://services.leadconnectorhq.com/oauth/token',
@@ -13,7 +13,9 @@ export const HIGHLEVEL_CONFIG = {
         "payments/orders.readonly",
         "companies.readonly",
         "custom-menu-links.readonly",
-        "custom-menu-links.write"
+        "custom-menu-links.write",
+        "oauth.write",
+        "oauth.readonly"
     ].join(' '),
     WEBHOOK_PUBLIC_KEY: `-----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAokvo/r9tVgcfZ5DysOSC

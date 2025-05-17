@@ -1,0 +1,157 @@
+DESCRIPTION >
+    API endpoint to get user profiles with first and last touch attribution data,
+    merging anonymous and identified profiles for the same user
+
+NODE user_profiles_api
+SQL >
+    %
+    WITH 
+        -- If we're looking up a specific user, get all their anonymous IDs
+        person_ids AS (
+            {% if defined(distinct_id) %}
+            -- Check if the distinct_id is an identified user
+            WITH is_user AS (
+                SELECT 1 
+                FROM identity_mappings 
+                WHERE user_id = {{String(distinct_id)}}
+                AND location_id = {{String(location_id, required=True)}}
+                LIMIT 1
+            )
+            SELECT 
+                {{String(distinct_id)}} AS user_id,
+                if(count() > 0, 
+                    (SELECT groupArray(anonymous_id) 
+                     FROM identity_mappings 
+                     WHERE user_id = {{String(distinct_id)}}
+                     AND location_id = {{String(location_id, required=True)}}),
+                    -- Otherwise check if it's an anonymous_id and get its user_id
+                    (WITH mapped_id AS (
+                        SELECT user_id 
+                        FROM identity_mappings 
+                        WHERE anonymous_id = {{String(distinct_id)}}
+                        AND location_id = {{String(location_id, required=True)}}
+                        LIMIT 1
+                     )
+                     SELECT if(count() > 0, 
+                        -- If mapped to a user_id, get all anonymous IDs for that user
+                        (SELECT groupArray(anonymous_id) 
+                         FROM identity_mappings 
+                         WHERE user_id = (SELECT user_id FROM mapped_id)
+                         AND location_id = {{String(location_id, required=True)}}),
+                        -- If not mapped at all, just use this ID alone
+                        [{{String(distinct_id)}}])
+                     FROM mapped_id
+                    )
+                ) AS anonymous_ids
+            FROM is_user
+            {% else %}
+            -- Default empty result when no distinct_id is provided
+            SELECT '' AS user_id, [] AS anonymous_ids
+            WHERE 0=1
+            {% end %}
+        )
+    
+    SELECT 
+        -- Preference for identified distinct_id if available
+        if(is_identified = 1, distinct_id, 
+           multiIf(
+               distinct_id IN (SELECT user_id FROM person_ids WHERE length(user_id) > 0), distinct_id,
+               (SELECT user_id FROM identity_mappings 
+                WHERE anonymous_id = distinct_id AND location_id = user_profiles_mv.location_id
+                LIMIT 1), 
+               distinct_id
+           )
+        ) AS user_id,
+        location_id,
+        
+        -- First touch attribution
+        minMerge(first_seen) AS first_seen,
+        argMinMerge(first_url, first_seen) AS first_url,
+        argMinMerge(first_referrer, first_seen) AS first_referrer,
+        argMinMerge(first_referring_domain, first_seen) AS first_referring_domain,
+        argMinMerge(first_utm_source, first_seen) AS first_utm_source,
+        argMinMerge(first_utm_medium, first_seen) AS first_utm_medium,
+        argMinMerge(first_utm_campaign, first_seen) AS first_utm_campaign,
+        argMinMerge(first_utm_content, first_seen) AS first_utm_content,
+        argMinMerge(first_utm_term, first_seen) AS first_utm_term,
+        
+        -- First click IDs
+        argMinMerge(first_gclid, first_seen) AS first_gclid,
+        argMinMerge(first_fbclid, first_seen) AS first_fbclid,
+        argMinMerge(first_msclkid, first_seen) AS first_msclkid,
+        argMinMerge(first_twclid, first_seen) AS first_twclid,
+        argMinMerge(first_dclid, first_seen) AS first_dclid,
+        argMinMerge(first_gbraid, first_seen) AS first_gbraid,
+        argMinMerge(first_wbraid, first_seen) AS first_wbraid,
+        argMinMerge(first_li_fat_id, first_seen) AS first_li_fat_id,
+        argMinMerge(first_igshid, first_seen) AS first_igshid,
+        argMinMerge(first_ttclid, first_seen) AS first_ttclid,
+        argMinMerge(first_rdt_cid, first_seen) AS first_rdt_cid,
+        argMinMerge(first_epik, first_seen) AS first_epik,
+        argMinMerge(first_qclid, first_seen) AS first_qclid,
+        argMinMerge(first_sccid, first_seen) AS first_sccid,
+        argMinMerge(first_irclid, first_seen) AS first_irclid,
+        argMinMerge(first__kx, first_seen) AS first__kx,
+        
+        -- Last touch attribution
+        maxMerge(last_seen) AS last_seen,
+        argMaxMerge(last_url, last_seen) AS last_url, 
+        argMaxMerge(last_referrer, last_seen) AS last_referrer,
+        argMaxMerge(last_referring_domain, last_seen) AS last_referring_domain,
+        argMaxMerge(last_utm_source, last_seen) AS last_utm_source,
+        argMaxMerge(last_utm_medium, last_seen) AS last_utm_medium,
+        argMaxMerge(last_utm_campaign, last_seen) AS last_utm_campaign,
+        argMaxMerge(last_utm_content, last_seen) AS last_utm_content,
+        argMaxMerge(last_utm_term, last_seen) AS last_utm_term,
+        
+        -- Last click IDs
+        argMaxMerge(last_gclid, last_seen) AS last_gclid,
+        argMaxMerge(last_fbclid, last_seen) AS last_fbclid,
+        argMaxMerge(last_msclkid, last_seen) AS last_msclkid,
+        argMaxMerge(last_twclid, last_seen) AS last_twclid,
+        argMaxMerge(last_dclid, last_seen) AS last_dclid,
+        argMaxMerge(last_gbraid, last_seen) AS last_gbraid,
+        argMaxMerge(last_wbraid, last_seen) AS last_wbraid,
+        argMaxMerge(last_li_fat_id, last_seen) AS last_li_fat_id,
+        argMaxMerge(last_igshid, last_seen) AS last_igshid,
+        argMaxMerge(last_ttclid, last_seen) AS last_ttclid,
+        argMaxMerge(last_rdt_cid, last_seen) AS last_rdt_cid,
+        argMaxMerge(last_epik, last_seen) AS last_epik,
+        argMaxMerge(last_qclid, last_seen) AS last_qclid,
+        argMaxMerge(last_sccid, last_seen) AS last_sccid,
+        argMaxMerge(last_irclid, last_seen) AS last_irclid,
+        argMaxMerge(last__kx, last_seen) AS last__kx,
+        
+        -- Other profile data
+        anyMerge(device_type) AS device_type,
+        anyMerge(browser) AS browser,
+        anyMerge(timezone) AS timezone,
+        
+        -- Identity status
+        maxMerge(identity_mapped) = 1 AS has_identity_mapping,
+        maxMerge(is_identified) = 1 AS is_identified
+        
+    FROM user_profiles_mv
+    WHERE location_id = {{String(location_id, required=True)}}
+    {% if defined(distinct_id) %}
+    AND (
+        -- Include the user ID if provided
+        distinct_id = {{String(distinct_id)}}
+        -- Or include any of the anonymous IDs associated with this user
+        OR distinct_id IN (
+            SELECT arrayJoin(anonymous_ids) FROM person_ids
+        )
+    )
+    {% end %}
+    {% if defined(is_identified) %}
+    AND maxMerge(is_identified) = {{UInt8(is_identified)}}
+    {% end %}
+    {% if not defined(distinct_id) %}
+    GROUP BY user_id, location_id
+    ORDER BY last_seen DESC
+    LIMIT {{Int32(limit, 100)}}
+    {% else %}
+    GROUP BY user_id, location_id
+    {% end %}
+
+TYPE endpoint 
