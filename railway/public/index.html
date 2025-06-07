@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Joke Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h1 {
+            color: #4a5568;
+            margin-bottom: 1.5rem;
+            font-size: 2rem;
+        }
+
+        .joke-container {
+            margin: 2rem 0;
+            min-height: 100px;
+        }
+
+        .setup {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            color: #2d3748;
+        }
+
+        .punchline {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #4a5568;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .punchline.visible {
+            opacity: 1;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s ease, background 0.2s ease;
+            margin-top: 1rem;
+        }
+
+        button:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loading {
+            display: none;
+            margin: 1rem 0;
+        }
+
+        .loading.visible {
+            display: block;
+        }
+
+        .error {
+            color: #e53e3e;
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        .menu {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .menu button {
+            margin: 0;
+        }
+
+        .history {
+            display: none;
+            margin-top: 2rem;
+            text-align: left;
+        }
+
+        .history.visible {
+            display: block;
+        }
+
+        .history-item {
+            background: #f7fafc;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 0.5rem;
+            border-left: 4px solid #667eea;
+        }
+
+        .history-item .setup {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .history-item .punchline {
+            font-size: 1.2rem;
+            opacity: 1;
+        }
+
+        .history-item .timestamp {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-top: 0.5rem;
+        }
+
+        .active {
+            background: #764ba2;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Random Joke Generator</h1>
+        <div class="menu">
+            <button id="newJokeBtn" class="active">New Joke</button>
+            <button id="historyBtn">Joke History</button>
+        </div>
+        <div id="jokeView">
+            <div class="joke-container">
+                <div class="setup" id="setup"></div>
+                <div class="punchline" id="punchline"></div>
+            </div>
+            <div class="loading" id="loading">Loading...</div>
+            <div class="error" id="error">Failed to load joke. Please try again.</div>
+            <button id="generateBtn">Generate New Joke</button>
+        </div>
+        <div id="historyView" class="history">
+            <div class="loading" id="historyLoading">Loading...</div>
+            <div class="error" id="historyError">Failed to load joke history. Please try again.</div>
+            <div id="historyList"></div>
+        </div>
+    </div>
+
+    <script>
+        const setupElement = document.getElementById('setup');
+        const punchlineElement = document.getElementById('punchline');
+        const generateBtn = document.getElementById('generateBtn');
+        const newJokeBtn = document.getElementById('newJokeBtn');
+        const historyBtn = document.getElementById('historyBtn');
+        const jokeView = document.getElementById('jokeView');
+        const historyView = document.getElementById('historyView');
+        const historyList = document.getElementById('historyList');
+        const loadingElement = document.getElementById('loading');
+        const errorElement = document.getElementById('error');
+        const historyLoadingElement = document.getElementById('historyLoading');
+        const historyErrorElement = document.getElementById('historyError');
+
+        async function getJoke() {
+            try {
+                loadingElement.classList.add('visible');
+                errorElement.classList.remove('visible');
+                punchlineElement.classList.remove('visible');
+
+                const response = await fetch('/joke');
+                const joke = await response.json();
+
+                setupElement.textContent = joke.setup;
+                punchlineElement.textContent = joke.punchline;
+
+                setTimeout(() => {
+                    punchlineElement.classList.add('visible');
+                }, 1000);
+            } catch (error) {
+                errorElement.classList.add('visible');
+            } finally {
+                loadingElement.classList.remove('visible');
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                historyLoadingElement.classList.add('visible');
+                historyErrorElement.classList.remove('visible');
+
+                const response = await fetch('/jokes');
+                const jokes = await response.json();
+
+                historyList.innerHTML = jokes.map(joke => `
+                    <div class="history-item">
+                        <div class="setup">${joke.setup}</div>
+                        <div class="punchline">${joke.punchline}</div>
+                        <div class="timestamp">${new Date(joke.created_at).toLocaleString()}</div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                historyErrorElement.classList.add('visible');
+            } finally {
+                historyLoadingElement.classList.remove('visible');
+            }
+        }
+
+        generateBtn.addEventListener('click', getJoke);
+
+        newJokeBtn.addEventListener('click', () => {
+            jokeView.style.display = 'block';
+            historyView.classList.remove('visible');
+            newJokeBtn.classList.add('active');
+            historyBtn.classList.remove('active');
+        });
+
+        historyBtn.addEventListener('click', () => {
+            jokeView.style.display = 'none';
+            historyView.classList.add('visible');
+            historyBtn.classList.add('active');
+            newJokeBtn.classList.remove('active');
+            loadHistory();
+        });
+
+        // Load first joke when page loads
+        getJoke();
+    </script>
+</body>
+
+</html>
