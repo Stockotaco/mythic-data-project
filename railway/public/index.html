@@ -150,6 +150,22 @@
         .active {
             background: #764ba2;
         }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .pagination button {
+            margin: 0;
+        }
+
+        .pagination span {
+            color: #4a5568;
+        }
     </style>
 </head>
 
@@ -212,21 +228,35 @@
             }
         }
 
-        async function loadHistory() {
+        async function loadHistory(page = 1) {
             try {
                 historyLoadingElement.classList.add('visible');
                 historyErrorElement.classList.remove('visible');
 
-                const response = await fetch('/jokes');
-                const jokes = await response.json();
+                const response = await fetch(`/jokes?page=${page}&limit=10`);
+                const data = await response.json();
 
-                historyList.innerHTML = jokes.map(joke => `
+                historyList.innerHTML = data.jokes.map(joke => `
                     <div class="history-item">
                         <div class="setup">${joke.setup}</div>
                         <div class="punchline">${joke.punchline}</div>
                         <div class="timestamp">${new Date(joke.created_at).toLocaleString()}</div>
                     </div>
                 `).join('');
+
+                // Add pagination controls
+                const paginationHtml = `
+                    <div class="pagination">
+                        ${data.pagination.page > 1 ?
+                        `<button onclick="loadHistory(${data.pagination.page - 1})">Previous</button>` :
+                        ''}
+                        <span>Page ${data.pagination.page} of ${data.pagination.pages}</span>
+                        ${data.pagination.page < data.pagination.pages ?
+                        `<button onclick="loadHistory(${data.pagination.page + 1})">Next</button>` :
+                        ''}
+                    </div>
+                `;
+                historyList.insertAdjacentHTML('afterend', paginationHtml);
             } catch (error) {
                 historyErrorElement.classList.add('visible');
             } finally {
@@ -248,11 +278,30 @@
             historyView.classList.add('visible');
             historyBtn.classList.add('active');
             newJokeBtn.classList.remove('active');
-            loadHistory();
+            loadHistory(1); // Start with page 1
         });
 
         // Load first joke when page loads
         getJoke();
+
+        // Add pagination styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .pagination {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: 1rem;
+                margin-top: 2rem;
+            }
+            .pagination button {
+                margin: 0;
+            }
+            .pagination span {
+                color: #4a5568;
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 
