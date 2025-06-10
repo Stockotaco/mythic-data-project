@@ -3,12 +3,16 @@ import { Hono } from 'hono'
 import { serve } from '@hono/node-server'
 import { serveStatic } from '@hono/node-server/serve-static'
 import { initDb, storeJoke, getJokes } from './db.js'
+import supabaseRouter from './supabase.js'
 
 const app = new Hono()
 const port = process.env.PORT || 3000
 
 // Initialize database
 let dbInitialized = false
+
+// Mount Supabase router
+app.route('/supabase', supabaseRouter)
 
 // Serve static files
 app.use('/*', serveStatic({ root: './public' }))
