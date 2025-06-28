@@ -36,11 +36,11 @@ export class WebhookService {
                 }
 
                 // Store the opportunity key with a TTL (24 hours)
-                await redis.set(opportunityKey, 'processed', { ex: 86400 });
+                await redis.set(opportunityKey, 'processed', { ttl: 86400 });
             }
 
             // Store the webhook key with a TTL (24 hours)
-            await redis.set(redisKey, 'processed', { ex: 86400 });
+            await redis.set(redisKey, 'processed', { ttl: 86400 });
         }
 
         // Determine queue type from webhook data

@@ -1,11 +1,8 @@
-import { Redis } from '@upstash/redis';
 import { Client } from '@upstash/qstash';
+import redisClient from './redis-config.js';
 
-// Redis configuration
-export const redis = new Redis({
-    url: 'https://capital-dane-41359.upstash.io',
-    token: 'AaGPAAIjcDE4M2EzMGFhYTQ4YTA0YjQ5OGIxYzAzODE5MTJjODNkMHAxMA',
-});
+// Redis configuration - using Railway Redis
+export const redis = redisClient;
 
 // QStash configuration
 export const qstash = new Client({

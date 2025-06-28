@@ -12,12 +12,13 @@
     "dependencies": {
         "@hono/node-server": "^1.8.2",
         "@upstash/qstash": "^2.8.1",
-        "@upstash/redis": "^1.28.4",
         "crypto-js": "^4.2.0",
+        "dotenv": "^16.3.1",
         "hono": "^4.0.5",
         "jose": "^5.10.0",
         "neverthrow": "^7.2.0",
-        "nodemon": "^3.0.3"
+        "nodemon": "^3.0.3",
+        "redis": "^4.6.10"
     },
     "devDependencies": {
         "nodemon": "^3.0.2"
