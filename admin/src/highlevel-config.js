@@ -2,7 +2,7 @@ export const HIGHLEVEL_CONFIG = {
     CLIENT_ID: '6827fcaec3217895d84d469e-marnjhwd',
     CLIENT_SECRET: 'f3c91894-2073-47ba-963c-0edb1193ccdf',
     REDIRECT_URI: 'https://admin.mythicdata.io/oauth/callback',
-    AUTH_URL: 'https://marketplace.gohighlevel.com/oauth/chooselocation',
+    AUTH_URL: 'https://marketplace.gohighlevel.com/oauth/chooselocation?loginWindowOpenMode=self',
     TOKEN_URL: 'https://services.leadconnectorhq.com/oauth/token',
     APP_ID: '67c76e4d9eab9a839cb4f2c5',
     API_URL: 'https://admin.mythicdata.io',
