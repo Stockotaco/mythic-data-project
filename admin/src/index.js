@@ -228,6 +228,7 @@ app.get('/oauth/authorize', (c) => {
     authUrl.searchParams.set('redirect_uri', HIGHLEVEL_CONFIG.REDIRECT_URI)
     authUrl.searchParams.set('response_type', 'code')
     authUrl.searchParams.set('state', state)
+    authUrl.searchParams.set('scope', HIGHLEVEL_CONFIG.SCOPES)
 
     return c.redirect(authUrl.toString())
 })
