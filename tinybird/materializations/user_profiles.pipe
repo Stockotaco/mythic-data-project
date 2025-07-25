@@ -70,17 +70,13 @@ SQL >
         anyState(browser) as browser,
         anyState(timezone) as timezone,
         
-        -- Identity status
-        maxState(multiIf(distinct_id IN (
-            SELECT user_id FROM identity_mappings WHERE location_id = events.location_id
-            UNION ALL
-            SELECT anonymous_id FROM identity_mappings WHERE location_id = events.location_id
-        ), 1, 0)) as identity_mapped,
-        maxState(if(is_identified, 1, 0)) as is_identified
+        -- Identity status - simplified without subquery
+        maxState(if(is_identified, 1, 0)) as is_identified,
+        maxState(0) as identity_mapped
     FROM events
     GROUP BY 
         distinct_id,
         location_id
 
 TYPE MATERIALIZED
-DATASOURCE user_profiles_mv 
+DATASOURCE user_profiles_mv

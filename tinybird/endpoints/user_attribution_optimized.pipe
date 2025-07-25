@@ -1,0 +1,194 @@
+DESCRIPTION >
+    High-performance endpoint for individual user attribution using pre-aggregated data.
+    Optimized for single user queries with identity mapping support and minimal data scanning.
+    Requires location_id for multi-tenant isolation.
+
+NODE get_user_attribution_optimized
+SQL >
+    %
+    WITH 
+        {% if defined(distinct_id) %}
+        -- Get all anonymous IDs for the given distinct_id, optimized for single user lookups
+        user_ids AS (
+            SELECT anonymous_id AS id
+            FROM identity_mappings 
+            WHERE user_id = {{String(distinct_id)}}
+            AND location_id = {{String(location_id, required=True)}}
+            UNION ALL
+            SELECT {{String(distinct_id)}} AS id
+        ),
+        {% end %}
+        
+        -- Get aggregated attribution data for the user(s) - uses pre-computed aggregates
+        user_attribution AS (
+            SELECT 
+                distinct_id,
+                
+                -- First touch attribution - using merge functions for aggregated data
+                minMerge(first_seen) as first_seen,
+                argMinMerge(first_utm_source) as first_utm_source,
+                argMinMerge(first_utm_medium) as first_utm_medium,
+                argMinMerge(first_utm_campaign) as first_utm_campaign,
+                argMinMerge(first_utm_content) as first_utm_content,
+                argMinMerge(first_utm_term) as first_utm_term,
+                argMinMerge(first_referrer) as first_referrer,
+                argMinMerge(first_referring_domain) as first_referring_domain,
+                
+                -- First touch click IDs (all of them)
+                argMinMerge(first_gclid) as first_gclid,
+                argMinMerge(first_fbclid) as first_fbclid,
+                argMinMerge(first_msclkid) as first_msclkid,
+                argMinMerge(first_twclid) as first_twclid,
+                argMinMerge(first_dclid) as first_dclid,
+                argMinMerge(first_gbraid) as first_gbraid,
+                argMinMerge(first_wbraid) as first_wbraid,
+                argMinMerge(first_li_fat_id) as first_li_fat_id,
+                argMinMerge(first_igshid) as first_igshid,
+                argMinMerge(first_ttclid) as first_ttclid,
+                argMinMerge(first_rdt_cid) as first_rdt_cid,
+                argMinMerge(first_epik) as first_epik,
+                argMinMerge(first_qclid) as first_qclid,
+                argMinMerge(first_sccid) as first_sccid,
+                argMinMerge(first_irclid) as first_irclid,
+                argMinMerge(first__kx) as first__kx,
+                
+                -- Last touch attribution
+                maxMerge(last_seen) as last_seen,
+                argMaxMerge(last_utm_source) as last_utm_source,
+                argMaxMerge(last_utm_medium) as last_utm_medium,
+                argMaxMerge(last_utm_campaign) as last_utm_campaign,
+                argMaxMerge(last_utm_content) as last_utm_content,
+                argMaxMerge(last_utm_term) as last_utm_term,
+                argMaxMerge(last_referrer) as last_referrer,
+                argMaxMerge(last_referring_domain) as last_referring_domain,
+                
+                -- Last touch click IDs (all of them)
+                argMaxMerge(last_gclid) as last_gclid,
+                argMaxMerge(last_fbclid) as last_fbclid,
+                argMaxMerge(last_msclkid) as last_msclkid,
+                argMaxMerge(last_twclid) as last_twclid,
+                argMaxMerge(last_dclid) as last_dclid,
+                argMaxMerge(last_gbraid) as last_gbraid,
+                argMaxMerge(last_wbraid) as last_wbraid,
+                argMaxMerge(last_li_fat_id) as last_li_fat_id,
+                argMaxMerge(last_igshid) as last_igshid,
+                argMaxMerge(last_ttclid) as last_ttclid,
+                argMaxMerge(last_rdt_cid) as last_rdt_cid,
+                argMaxMerge(last_epik) as last_epik,
+                argMaxMerge(last_qclid) as last_qclid,
+                argMaxMerge(last_sccid) as last_sccid,
+                argMaxMerge(last_irclid) as last_irclid,
+                argMaxMerge(last__kx) as last__kx,
+                
+                -- Facebook click ID detection timestamp
+                argMinMerge(fbclid_detected_timestamp) as fbclid_detected_timestamp,
+                
+                -- Session stats
+                countMerge(session_count) as session_count
+                
+            FROM user_attribution_summary_mv
+            WHERE location_id = {{String(location_id, required=True)}}
+            {% if defined(distinct_id) %}
+            AND distinct_id IN (SELECT id FROM user_ids)
+            {% end %}
+            GROUP BY distinct_id
+        )
+    
+    SELECT
+        ua.distinct_id as user_id,
+        
+        -- First touch attribution
+        ua.first_seen,
+        ua.first_utm_source,
+        ua.first_utm_medium,
+        ua.first_utm_campaign,
+        ua.first_utm_content,
+        ua.first_utm_term,
+        ua.first_referrer,
+        ua.first_referring_domain,
+        
+        -- First touch click IDs (all of them)
+        ua.first_gclid,
+        ua.first_fbclid,
+        ua.first_msclkid,
+        ua.first_twclid,
+        ua.first_dclid,
+        ua.first_gbraid,
+        ua.first_wbraid,
+        ua.first_li_fat_id,
+        ua.first_igshid,
+        ua.first_ttclid,
+        ua.first_rdt_cid,
+        ua.first_epik,
+        ua.first_qclid,
+        ua.first_sccid,
+        ua.first_irclid,
+        ua.first__kx,
+        
+        -- Last touch attribution
+        ua.last_seen,
+        ua.last_utm_source,
+        ua.last_utm_medium,
+        ua.last_utm_campaign,
+        ua.last_utm_content,
+        ua.last_utm_term,
+        ua.last_referrer,
+        ua.last_referring_domain,
+        
+        -- Last touch click IDs (all of them)
+        ua.last_gclid,
+        ua.last_fbclid,
+        ua.last_msclkid,
+        ua.last_twclid,
+        ua.last_dclid,
+        ua.last_gbraid,
+        ua.last_wbraid,
+        ua.last_li_fat_id,
+        ua.last_igshid,
+        ua.last_ttclid,
+        ua.last_rdt_cid,
+        ua.last_epik,
+        ua.last_qclid,
+        ua.last_sccid,
+        ua.last_irclid,
+        ua.last__kx,
+        
+        -- Session stats
+        ua.session_count,
+        toInt32(dateDiff('day', ua.first_seen, ua.last_seen)) as days_between_first_last,
+        
+        -- Facebook click ID timestamp (converted to milliseconds)
+        if(ua.fbclid_detected_timestamp IS NOT NULL, 
+           toUnixTimestamp64Milli(ua.fbclid_detected_timestamp), 
+           NULL) as fbclid_detected_timestamp_ms,
+        
+        -- Derived attribution insights (enhanced with new click IDs)
+        if(ua.first_utm_source IS NOT NULL, 'utm', 
+           if(ua.first_gclid IS NOT NULL, 'google_ads',
+              if(ua.first_gbraid IS NOT NULL, 'google_ads_privacy', 
+                 if(ua.first_wbraid IS NOT NULL, 'google_ads_ios14', 
+                    if(ua.first_fbclid IS NOT NULL, 'facebook_ads',
+                       if(ua.first_msclkid IS NOT NULL, 'microsoft_ads',
+                          if(ua.first_twclid IS NOT NULL, 'twitter_ads',
+                             if(ua.first_ttclid IS NOT NULL, 'tiktok_ads',
+                                if(ua.first_referrer IS NOT NULL, 'referral', 'direct'))))))))) as first_touch_channel,
+        
+        if(ua.last_utm_source IS NOT NULL, 'utm',
+           if(ua.last_gclid IS NOT NULL, 'google_ads',
+              if(ua.last_gbraid IS NOT NULL, 'google_ads_privacy',
+                 if(ua.last_wbraid IS NOT NULL, 'google_ads_ios14', 
+                    if(ua.last_fbclid IS NOT NULL, 'facebook_ads', 
+                       if(ua.last_msclkid IS NOT NULL, 'microsoft_ads',
+                          if(ua.last_twclid IS NOT NULL, 'twitter_ads',
+                             if(ua.last_ttclid IS NOT NULL, 'tiktok_ads',
+                                if(ua.last_referrer IS NOT NULL, 'referral', 'direct'))))))))) as last_touch_channel
+        
+    FROM user_attribution ua
+    {% if defined(distinct_id) %}
+    WHERE ua.distinct_id = {{String(distinct_id)}}
+    {% else %}
+    ORDER BY ua.last_seen DESC
+    LIMIT {{Int32(limit, 100)}}
+    {% end %}
+
+TYPE endpoint

@@ -1,0 +1,149 @@
+DESCRIPTION >
+    Pre-aggregate attribution data at the user level to reduce query-time processing
+
+NODE user_attribution_aggregation
+SQL >
+    SELECT 
+        distinct_id,
+        location_id,
+        minState(timestamp) as first_seen,
+        maxState(timestamp) as last_seen,
+        countState() as session_count,
+        
+        -- First touch attribution using session entry data for better accuracy
+        argMinState(
+            if(session_entry_utm_source IS NOT NULL, session_entry_utm_source, utm_source), 
+            timestamp
+        ) as first_utm_source,
+        argMinState(
+            if(session_entry_utm_medium IS NOT NULL, session_entry_utm_medium, utm_medium), 
+            timestamp
+        ) as first_utm_medium,
+        argMinState(
+            if(session_entry_utm_campaign IS NOT NULL, session_entry_utm_campaign, utm_campaign), 
+            timestamp
+        ) as first_utm_campaign,
+        argMinState(
+            if(session_entry_utm_content IS NOT NULL, session_entry_utm_content, utm_content), 
+            timestamp
+        ) as first_utm_content,
+        argMinState(
+            if(session_entry_utm_term IS NOT NULL, session_entry_utm_term, utm_term), 
+            timestamp
+        ) as first_utm_term,
+        argMinState(
+            if(session_entry_referrer IS NOT NULL, session_entry_referrer, referrer), 
+            timestamp
+        ) as first_referrer,
+        argMinState(
+            if(session_entry_referring_domain IS NOT NULL, session_entry_referring_domain, referring_domain), 
+            timestamp
+        ) as first_referring_domain,
+        
+        -- First touch click IDs
+        argMinState(
+            if(session_entry_gclid IS NOT NULL, session_entry_gclid, gclid), 
+            timestamp
+        ) as first_gclid,
+        argMinState(
+            if(session_entry_fbclid IS NOT NULL, session_entry_fbclid, fbclid), 
+            timestamp
+        ) as first_fbclid,
+        argMinState(
+            if(session_entry_msclkid IS NOT NULL, session_entry_msclkid, msclkid), 
+            timestamp
+        ) as first_msclkid,
+        argMinState(
+            if(session_entry_twclid IS NOT NULL, session_entry_twclid, twclid), 
+            timestamp
+        ) as first_twclid,
+        argMinState(
+            if(session_entry_dclid IS NOT NULL, session_entry_dclid, dclid), 
+            timestamp
+        ) as first_dclid,
+        argMinState(
+            if(session_entry_gbraid IS NOT NULL, session_entry_gbraid, gbraid), 
+            timestamp
+        ) as first_gbraid,
+        argMinState(
+            if(session_entry_wbraid IS NOT NULL, session_entry_wbraid, wbraid), 
+            timestamp
+        ) as first_wbraid,
+        argMinState(
+            if(session_entry_li_fat_id IS NOT NULL, session_entry_li_fat_id, li_fat_id), 
+            timestamp
+        ) as first_li_fat_id,
+        argMinState(
+            if(session_entry_igshid IS NOT NULL, session_entry_igshid, igshid), 
+            timestamp
+        ) as first_igshid,
+        argMinState(
+            if(session_entry_ttclid IS NOT NULL, session_entry_ttclid, ttclid), 
+            timestamp
+        ) as first_ttclid,
+        argMinState(
+            if(session_entry_rdt_cid IS NOT NULL, session_entry_rdt_cid, rdt_cid), 
+            timestamp
+        ) as first_rdt_cid,
+        argMinState(
+            if(session_entry_epik IS NOT NULL, session_entry_epik, epik), 
+            timestamp
+        ) as first_epik,
+        argMinState(
+            if(session_entry_qclid IS NOT NULL, session_entry_qclid, qclid), 
+            timestamp
+        ) as first_qclid,
+        argMinState(
+            if(session_entry_sccid IS NOT NULL, session_entry_sccid, sccid), 
+            timestamp
+        ) as first_sccid,
+        argMinState(
+            if(session_entry_irclid IS NOT NULL, session_entry_irclid, irclid), 
+            timestamp
+        ) as first_irclid,
+        argMinState(
+            if(session_entry__kx IS NOT NULL, session_entry__kx, _kx), 
+            timestamp
+        ) as first__kx,
+        
+        -- Last touch attribution
+        argMaxState(utm_source, timestamp) as last_utm_source,
+        argMaxState(utm_medium, timestamp) as last_utm_medium,
+        argMaxState(utm_campaign, timestamp) as last_utm_campaign,
+        argMaxState(utm_content, timestamp) as last_utm_content,
+        argMaxState(utm_term, timestamp) as last_utm_term,
+        argMaxState(referrer, timestamp) as last_referrer,
+        argMaxState(referring_domain, timestamp) as last_referring_domain,
+        
+        -- Last touch click IDs
+        argMaxState(gclid, timestamp) as last_gclid,
+        argMaxState(fbclid, timestamp) as last_fbclid,
+        argMaxState(msclkid, timestamp) as last_msclkid,
+        argMaxState(twclid, timestamp) as last_twclid,
+        argMaxState(dclid, timestamp) as last_dclid,
+        argMaxState(gbraid, timestamp) as last_gbraid,
+        argMaxState(wbraid, timestamp) as last_wbraid,
+        argMaxState(li_fat_id, timestamp) as last_li_fat_id,
+        argMaxState(igshid, timestamp) as last_igshid,
+        argMaxState(ttclid, timestamp) as last_ttclid,
+        argMaxState(rdt_cid, timestamp) as last_rdt_cid,
+        argMaxState(epik, timestamp) as last_epik,
+        argMaxState(qclid, timestamp) as last_qclid,
+        argMaxState(sccid, timestamp) as last_sccid,
+        argMaxState(irclid, timestamp) as last_irclid,
+        argMaxState(_kx, timestamp) as last__kx,
+        
+        -- Facebook click ID detection timestamp - when fbclid was first detected
+        argMinState(
+            if(fbclid IS NOT NULL, timestamp, NULL), 
+            timestamp
+        ) as fbclid_detected_timestamp
+        
+    FROM events
+    WHERE session_id IS NOT NULL
+    GROUP BY 
+        distinct_id,
+        location_id
+
+TYPE MATERIALIZED
+DATASOURCE user_attribution_summary_mv
