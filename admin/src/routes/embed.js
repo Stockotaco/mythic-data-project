@@ -145,6 +145,16 @@ embedRoutes.post('/authenticate', async (c) => {
             return c.json({ error: 'No email found in user data' }, 400);
         }
 
+        // Normalize email address
+        const normalizedEmail = userData.email.toString().trim().toLowerCase();
+        
+        if (!normalizedEmail || !normalizedEmail.includes('@')) {
+            return c.json({ error: 'Invalid email address format' }, 400);
+        }
+
+        // Update userData with normalized email
+        userData.email = normalizedEmail;
+
         // Try to create user first (will fail if user exists)
         let userId;
         const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
@@ -187,7 +197,7 @@ embedRoutes.post('/authenticate', async (c) => {
         // Use Supabase admin to generate a session token directly
         const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
             type: 'magiclink',
-            email: userData.email
+            email: normalizedEmail
         });
 
         if (sessionError) {

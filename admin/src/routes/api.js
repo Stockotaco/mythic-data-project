@@ -51,6 +51,11 @@ apiRoutes.post('/user-details', async (c) => {
         // Decrypt the user data
         const userData = decryptUserData(processedHash);
 
+        // Normalize email if present
+        if (userData.email) {
+            userData.email = userData.email.toString().trim().toLowerCase();
+        }
+
         return c.json(userData);
     } catch (error) {
         return c.json({ error: error.message }, 400);
