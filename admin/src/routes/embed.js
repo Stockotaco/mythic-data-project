@@ -9,8 +9,8 @@ embedRoutes.get('/', (c) => {
     <head>
         <title>Mythic Data Embed</title>
         <script>
-        // Get user data from HighLevel using Custom Pages Implementation
-        async function getUserData() {
+        // Get encrypted user data from HighLevel using Custom Pages Implementation
+        async function getEncryptedUserData() {
             // Request user data from parent window
             const encryptedUserData = await new Promise((resolve) => {
                 window.parent.postMessage({ message: 'REQUEST_USER_DATA' }, '*');
@@ -26,19 +26,7 @@ embedRoutes.get('/', (c) => {
             if (!encryptedUserData) {
                 throw new Error('No user data received from HighLevel');
             }
-            // Send to backend for decryption
-            const response = await fetch('/decrypt-sso', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ encryptedData: encryptedUserData })
-            });
-            const result = await response.json();
-            if (!response.ok) {
-                throw new Error(result.error || 'Failed to decrypt user data');
-            }
-            return result;
+            return encryptedUserData;
         }
         // Initialize the page
         async function init() {
@@ -49,25 +37,22 @@ embedRoutes.get('/', (c) => {
                 // Hide iframe initially
                 document.getElementById('embed-iframe').style.display = 'none';
                 document.getElementById('diagnostic-container').style.display = 'none';
-                // Try to get user data
+                // Try to get encrypted user data
                 try {
-                    const userData = await getUserData();
+                    const encryptedUserData = await getEncryptedUserData();
                     // Hide loading indicator
                     if (loadingElem) loadingElem.style.display = 'none';
-                    // Create the iframe with user data
+                    // Create the iframe with encrypted hash
                     const iframe = document.getElementById('embed-iframe');
-                    // Prepare URL with query parameters
+                    // Prepare URL with encrypted hash and embed parameters
                     const embedUrl = new URL('https://app.mythicdata.io/embed');
-                    Object.entries(userData).forEach(([key, value]) => {
-                        if (value !== null && value !== undefined) {
-                            embedUrl.searchParams.append(key, value);
-                        }
-                    });
+                    embedUrl.searchParams.append('hash', encryptedUserData);
+                    embedUrl.searchParams.append('embed', 'true');
                     iframe.src = embedUrl.toString();
                     iframe.style.display = 'block';
                 } catch (dataError) {
-                    // Handle decryption errors
-                    console.error('Failed to get user data:', dataError);
+                    // Handle data retrieval errors
+                    console.error('Failed to get encrypted user data:', dataError);
                     if (loadingElem) loadingElem.style.display = 'none';
                     document.getElementById('diagnostic-container').style.display = 'block';
                     document.getElementById('diagnostic-title').textContent = 'Error Getting User Data';
