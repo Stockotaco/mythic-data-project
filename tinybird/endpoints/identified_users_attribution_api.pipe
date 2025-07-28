@@ -1,0 +1,198 @@
+DESCRIPTION >
+    High-performance endpoint for bulk identified user attribution data using pre-aggregated materialized views.
+    Optimized for retrieving attribution data for all or filtered identified users with minimal query overhead.
+    Requires location_id for multi-tenant isolation.
+
+NODE get_identified_users_attribution
+SQL >
+    %
+    WITH base_data AS (
+        SELECT
+            user_id,
+            location_id,
+            
+            -- First touch attribution - using merge functions for aggregated data
+            minMerge(first_seen) as first_seen,
+            argMinMerge(first_utm_source) as first_utm_source,
+            argMinMerge(first_utm_medium) as first_utm_medium,
+            argMinMerge(first_utm_campaign) as first_utm_campaign,
+            argMinMerge(first_utm_content) as first_utm_content,
+            argMinMerge(first_utm_term) as first_utm_term,
+            argMinMerge(first_referrer) as first_referrer,
+            argMinMerge(first_referring_domain) as first_referring_domain,
+            
+            -- First touch click IDs (all of them)
+            argMinMerge(first_gclid) as first_gclid,
+            argMinMerge(first_fbclid) as first_fbclid,
+            argMinMerge(first_msclkid) as first_msclkid,
+            argMinMerge(first_twclid) as first_twclid,
+            argMinMerge(first_dclid) as first_dclid,
+            argMinMerge(first_gbraid) as first_gbraid,
+            argMinMerge(first_wbraid) as first_wbraid,
+            argMinMerge(first_li_fat_id) as first_li_fat_id,
+            argMinMerge(first_igshid) as first_igshid,
+            argMinMerge(first_ttclid) as first_ttclid,
+            argMinMerge(first_rdt_cid) as first_rdt_cid,
+            argMinMerge(first_epik) as first_epik,
+            argMinMerge(first_qclid) as first_qclid,
+            argMinMerge(first_sccid) as first_sccid,
+            argMinMerge(first_irclid) as first_irclid,
+            argMinMerge(first__kx) as first__kx,
+            
+            -- Last touch attribution
+            maxMerge(last_seen) as last_seen,
+            argMaxMerge(last_utm_source) as last_utm_source,
+            argMaxMerge(last_utm_medium) as last_utm_medium,
+            argMaxMerge(last_utm_campaign) as last_utm_campaign,
+            argMaxMerge(last_utm_content) as last_utm_content,
+            argMaxMerge(last_utm_term) as last_utm_term,
+            argMaxMerge(last_referrer) as last_referrer,
+            argMaxMerge(last_referring_domain) as last_referring_domain,
+            
+            -- Last touch click IDs (all of them)
+            argMaxMerge(last_gclid) as last_gclid,
+            argMaxMerge(last_fbclid) as last_fbclid,
+            argMaxMerge(last_msclkid) as last_msclkid,
+            argMaxMerge(last_twclid) as last_twclid,
+            argMaxMerge(last_dclid) as last_dclid,
+            argMaxMerge(last_gbraid) as last_gbraid,
+            argMaxMerge(last_wbraid) as last_wbraid,
+            argMaxMerge(last_li_fat_id) as last_li_fat_id,
+            argMaxMerge(last_igshid) as last_igshid,
+            argMaxMerge(last_ttclid) as last_ttclid,
+            argMaxMerge(last_rdt_cid) as last_rdt_cid,
+            argMaxMerge(last_epik) as last_epik,
+            argMaxMerge(last_qclid) as last_qclid,
+            argMaxMerge(last_sccid) as last_sccid,
+            argMaxMerge(last_irclid) as last_irclid,
+            argMaxMerge(last__kx) as last__kx,
+            
+            -- Facebook click ID detection timestamp
+            argMinMerge(fbclid_detected_timestamp) as fbclid_detected_timestamp,
+            
+            -- Session stats
+            countMerge(session_count) as session_count
+            
+        FROM identified_users_attribution_mv
+        WHERE location_id = {{String(location_id, required=True)}}
+        {% if defined(user_id) %}
+        AND user_id = {{String(user_id)}}
+        {% end %}
+        {% if defined(first_utm_source) %}
+        AND argMinMerge(first_utm_source) = {{String(first_utm_source)}}
+        {% end %}
+        {% if defined(last_utm_source) %}
+        AND argMaxMerge(last_utm_source) = {{String(last_utm_source)}}
+        {% end %}
+        {% if defined(first_utm_campaign) %}
+        AND argMinMerge(first_utm_campaign) = {{String(first_utm_campaign)}}
+        {% end %}
+        {% if defined(last_utm_campaign) %}
+        AND argMaxMerge(last_utm_campaign) = {{String(last_utm_campaign)}}
+        {% end %}
+        {% if defined(min_session_count) %}
+        AND countMerge(session_count) >= {{Int32(min_session_count)}}
+        {% end %}
+        {% if defined(first_seen_after) %}
+        AND minMerge(first_seen) >= toDateTime({{String(first_seen_after)}})
+        {% end %}
+        {% if defined(first_seen_before) %}
+        AND minMerge(first_seen) <= toDateTime({{String(first_seen_before)}})
+        {% end %}
+        {% if defined(last_seen_after) %}
+        AND maxMerge(last_seen) >= toDateTime({{String(last_seen_after)}})
+        {% end %}
+        {% if defined(last_seen_before) %}
+        AND maxMerge(last_seen) <= toDateTime({{String(last_seen_before)}})
+        {% end %}
+        GROUP BY user_id, location_id
+    )
+    
+    SELECT
+        user_id,
+        location_id,
+        first_seen,
+        first_utm_source,
+        first_utm_medium,
+        first_utm_campaign,
+        first_utm_content,
+        first_utm_term,
+        first_referrer,
+        first_referring_domain,
+        first_gclid,
+        first_fbclid,
+        first_msclkid,
+        first_twclid,
+        first_dclid,
+        first_gbraid,
+        first_wbraid,
+        first_li_fat_id,
+        first_igshid,
+        first_ttclid,
+        first_rdt_cid,
+        first_epik,
+        first_qclid,
+        first_sccid,
+        first_irclid,
+        first__kx,
+        last_seen,
+        last_utm_source,
+        last_utm_medium,
+        last_utm_campaign,
+        last_utm_content,
+        last_utm_term,
+        last_referrer,
+        last_referring_domain,
+        last_gclid,
+        last_fbclid,
+        last_msclkid,
+        last_twclid,
+        last_dclid,
+        last_gbraid,
+        last_wbraid,
+        last_li_fat_id,
+        last_igshid,
+        last_ttclid,
+        last_rdt_cid,
+        last_epik,
+        last_qclid,
+        last_sccid,
+        last_irclid,
+        last__kx,
+        session_count,
+        
+        -- Calculated fields using the merged data
+        toInt32(dateDiff('day', first_seen, last_seen)) as days_between_first_last,
+        
+        -- Facebook click ID timestamp (converted to milliseconds)
+        if(fbclid_detected_timestamp IS NOT NULL, 
+           toUnixTimestamp64Milli(fbclid_detected_timestamp), 
+           NULL) as fbclid_detected_timestamp_ms,
+        
+        -- Derived attribution insights (enhanced with new click IDs)
+        if(first_utm_source IS NOT NULL, 'utm', 
+           if(first_gclid IS NOT NULL, 'google_ads',
+              if(first_gbraid IS NOT NULL, 'google_ads_privacy', 
+                 if(first_wbraid IS NOT NULL, 'google_ads_ios14', 
+                    if(first_fbclid IS NOT NULL, 'facebook_ads',
+                       if(first_msclkid IS NOT NULL, 'microsoft_ads',
+                          if(first_twclid IS NOT NULL, 'twitter_ads',
+                             if(first_ttclid IS NOT NULL, 'tiktok_ads',
+                                if(first_referrer IS NOT NULL, 'referral', 'direct'))))))))) as first_touch_channel,
+        
+        if(last_utm_source IS NOT NULL, 'utm',
+           if(last_gclid IS NOT NULL, 'google_ads',
+              if(last_gbraid IS NOT NULL, 'google_ads_privacy',
+                 if(last_wbraid IS NOT NULL, 'google_ads_ios14', 
+                    if(last_fbclid IS NOT NULL, 'facebook_ads', 
+                       if(last_msclkid IS NOT NULL, 'microsoft_ads',
+                          if(last_twclid IS NOT NULL, 'twitter_ads',
+                             if(last_ttclid IS NOT NULL, 'tiktok_ads',
+                                if(last_referrer IS NOT NULL, 'referral', 'direct'))))))))) as last_touch_channel
+    
+    FROM base_data
+    ORDER BY {% if defined(order_by) %}{{String(order_by)}}{% else %}last_seen{% end %} {% if defined(order) %}{{String(order)}}{% else %}DESC{% end %}
+    LIMIT {{Int32(limit, 1000)}}
+    OFFSET {{Int32(offset, 0)}}
+
+TYPE endpoint

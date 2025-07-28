@@ -1,0 +1,161 @@
+DESCRIPTION >
+    Pre-aggregate attribution data for all identified users using identity mapping to resolve anonymous sessions
+
+NODE identified_users_aggregation
+SQL >
+    WITH
+        -- Get all user mappings to connect anonymous IDs to identified user IDs
+        user_mappings AS (
+            SELECT DISTINCT
+                user_id,
+                location_id,
+                groupArray(anonymous_id) as anonymous_ids
+            FROM identity_mappings
+            GROUP BY user_id, location_id
+        ),
+        
+        -- Get all events for identified users (including their anonymous sessions)
+        user_events AS (
+            SELECT 
+                e.timestamp,
+                e.location_id,
+                e.session_id,
+                
+                -- Use the mapped user_id instead of distinct_id
+                COALESCE(im.user_id, e.distinct_id) as user_id,
+                
+                -- Attribution data with session entry preference for first touch
+                if(e.session_entry_utm_source IS NOT NULL, e.session_entry_utm_source, e.utm_source) as utm_source,
+                if(e.session_entry_utm_medium IS NOT NULL, e.session_entry_utm_medium, e.utm_medium) as utm_medium,
+                if(e.session_entry_utm_campaign IS NOT NULL, e.session_entry_utm_campaign, e.utm_campaign) as utm_campaign,
+                if(e.session_entry_utm_content IS NOT NULL, e.session_entry_utm_content, e.utm_content) as utm_content,
+                if(e.session_entry_utm_term IS NOT NULL, e.session_entry_utm_term, e.utm_term) as utm_term,
+                if(e.session_entry_referrer IS NOT NULL, e.session_entry_referrer, e.referrer) as referrer,
+                if(e.session_entry_referring_domain IS NOT NULL, e.session_entry_referring_domain, e.referring_domain) as referring_domain,
+                
+                -- Click IDs with session entry preference
+                if(e.session_entry_gclid IS NOT NULL, e.session_entry_gclid, e.gclid) as gclid,
+                if(e.session_entry_fbclid IS NOT NULL, e.session_entry_fbclid, e.fbclid) as fbclid,
+                if(e.session_entry_msclkid IS NOT NULL, e.session_entry_msclkid, e.msclkid) as msclkid,
+                if(e.session_entry_twclid IS NOT NULL, e.session_entry_twclid, e.twclid) as twclid,
+                if(e.session_entry_dclid IS NOT NULL, e.session_entry_dclid, e.dclid) as dclid,
+                if(e.session_entry_gbraid IS NOT NULL, e.session_entry_gbraid, e.gbraid) as gbraid,
+                if(e.session_entry_wbraid IS NOT NULL, e.session_entry_wbraid, e.wbraid) as wbraid,
+                if(e.session_entry_li_fat_id IS NOT NULL, e.session_entry_li_fat_id, e.li_fat_id) as li_fat_id,
+                if(e.session_entry_igshid IS NOT NULL, e.session_entry_igshid, e.igshid) as igshid,
+                if(e.session_entry_ttclid IS NOT NULL, e.session_entry_ttclid, e.ttclid) as ttclid,
+                if(e.session_entry_rdt_cid IS NOT NULL, e.session_entry_rdt_cid, e.rdt_cid) as rdt_cid,
+                if(e.session_entry_epik IS NOT NULL, e.session_entry_epik, e.epik) as epik,
+                if(e.session_entry_qclid IS NOT NULL, e.session_entry_qclid, e.qclid) as qclid,
+                if(e.session_entry_sccid IS NOT NULL, e.session_entry_sccid, e.sccid) as sccid,
+                if(e.session_entry_irclid IS NOT NULL, e.session_entry_irclid, e.irclid) as irclid,
+                if(e.session_entry__kx IS NOT NULL, e.session_entry__kx, e._kx) as _kx,
+                
+                -- Direct click IDs for last touch
+                e.utm_source as last_utm_source,
+                e.utm_medium as last_utm_medium,
+                e.utm_campaign as last_utm_campaign,
+                e.utm_content as last_utm_content,
+                e.utm_term as last_utm_term,
+                e.referrer as last_referrer,
+                e.referring_domain as last_referring_domain,
+                e.gclid as last_gclid,
+                e.fbclid as last_fbclid,
+                e.msclkid as last_msclkid,
+                e.twclid as last_twclid,
+                e.dclid as last_dclid,
+                e.gbraid as last_gbraid,
+                e.wbraid as last_wbraid,
+                e.li_fat_id as last_li_fat_id,
+                e.igshid as last_igshid,
+                e.ttclid as last_ttclid,
+                e.rdt_cid as last_rdt_cid,
+                e.epik as last_epik,
+                e.qclid as last_qclid,
+                e.sccid as last_sccid,
+                e.irclid as last_irclid,
+                e._kx as last__kx
+                
+            FROM events e
+            LEFT JOIN identity_mappings im 
+                ON e.distinct_id = im.anonymous_id 
+                AND e.location_id = im.location_id
+            WHERE e.session_id IS NOT NULL
+            -- Only include events where we have a user_id (either identified or mapped)
+            AND (e.is_identified = 1 OR im.user_id IS NOT NULL)
+        )
+    
+    SELECT 
+        user_id,
+        location_id,
+        minState(timestamp) as first_seen,
+        maxState(timestamp) as last_seen,
+        countState() as session_count,
+        
+        -- First touch attribution using session entry data for better accuracy
+        argMinState(utm_source, timestamp) as first_utm_source,
+        argMinState(utm_medium, timestamp) as first_utm_medium,
+        argMinState(utm_campaign, timestamp) as first_utm_campaign,
+        argMinState(utm_content, timestamp) as first_utm_content,
+        argMinState(utm_term, timestamp) as first_utm_term,
+        argMinState(referrer, timestamp) as first_referrer,
+        argMinState(referring_domain, timestamp) as first_referring_domain,
+        
+        -- First touch click IDs
+        argMinState(gclid, timestamp) as first_gclid,
+        argMinState(fbclid, timestamp) as first_fbclid,
+        argMinState(msclkid, timestamp) as first_msclkid,
+        argMinState(twclid, timestamp) as first_twclid,
+        argMinState(dclid, timestamp) as first_dclid,
+        argMinState(gbraid, timestamp) as first_gbraid,
+        argMinState(wbraid, timestamp) as first_wbraid,
+        argMinState(li_fat_id, timestamp) as first_li_fat_id,
+        argMinState(igshid, timestamp) as first_igshid,
+        argMinState(ttclid, timestamp) as first_ttclid,
+        argMinState(rdt_cid, timestamp) as first_rdt_cid,
+        argMinState(epik, timestamp) as first_epik,
+        argMinState(qclid, timestamp) as first_qclid,
+        argMinState(sccid, timestamp) as first_sccid,
+        argMinState(irclid, timestamp) as first_irclid,
+        argMinState(_kx, timestamp) as first__kx,
+        
+        -- Last touch attribution
+        argMaxState(last_utm_source, timestamp) as last_utm_source,
+        argMaxState(last_utm_medium, timestamp) as last_utm_medium,
+        argMaxState(last_utm_campaign, timestamp) as last_utm_campaign,
+        argMaxState(last_utm_content, timestamp) as last_utm_content,
+        argMaxState(last_utm_term, timestamp) as last_utm_term,
+        argMaxState(last_referrer, timestamp) as last_referrer,
+        argMaxState(last_referring_domain, timestamp) as last_referring_domain,
+        
+        -- Last touch click IDs
+        argMaxState(last_gclid, timestamp) as last_gclid,
+        argMaxState(last_fbclid, timestamp) as last_fbclid,
+        argMaxState(last_msclkid, timestamp) as last_msclkid,
+        argMaxState(last_twclid, timestamp) as last_twclid,
+        argMaxState(last_dclid, timestamp) as last_dclid,
+        argMaxState(last_gbraid, timestamp) as last_gbraid,
+        argMaxState(last_wbraid, timestamp) as last_wbraid,
+        argMaxState(last_li_fat_id, timestamp) as last_li_fat_id,
+        argMaxState(last_igshid, timestamp) as last_igshid,
+        argMaxState(last_ttclid, timestamp) as last_ttclid,
+        argMaxState(last_rdt_cid, timestamp) as last_rdt_cid,
+        argMaxState(last_epik, timestamp) as last_epik,
+        argMaxState(last_qclid, timestamp) as last_qclid,
+        argMaxState(last_sccid, timestamp) as last_sccid,
+        argMaxState(last_irclid, timestamp) as last_irclid,
+        argMaxState(last__kx, timestamp) as last__kx,
+        
+        -- Facebook click ID detection timestamp - when fbclid was first detected
+        argMinState(
+            if(fbclid IS NOT NULL, timestamp, NULL), 
+            timestamp
+        ) as fbclid_detected_timestamp
+        
+    FROM user_events
+    GROUP BY 
+        user_id,
+        location_id
+
+TYPE materialized
+DATASOURCE identified_users_attribution_mv
