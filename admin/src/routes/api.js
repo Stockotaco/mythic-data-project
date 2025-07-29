@@ -62,4 +62,48 @@ apiRoutes.post('/user-details', async (c) => {
     }
 })
 
+// Decrypt user data endpoint for custom JS (HighLevel marketplace app context)
+apiRoutes.post('/decrypt-user-data', async (c) => {
+    try {
+        const { encryptedData } = await c.req.json();
+
+        if (!encryptedData) {
+            return c.json({ error: 'Missing encryptedData parameter' }, 400);
+        }
+
+        console.log('Decrypt request received');
+        console.log('Encrypted data type:', typeof encryptedData);
+        console.log('Encrypted data length:', encryptedData.length);
+
+        // Decrypt the user data using the same function
+        const userData = decryptUserData(encryptedData);
+
+        // Normalize email if present
+        if (userData.email) {
+            userData.email = userData.email.toString().trim().toLowerCase();
+        }
+
+        console.log('Successfully decrypted user data:', {
+            userId: userData.userId,
+            email: userData.email,
+            type: userData.type,
+            hasActiveLocation: !!userData.activeLocation
+        });
+
+        return c.json({
+            success: true,
+            userData: userData,
+            context: userData.activeLocation ? 'location' : 'agency',
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        console.error('Decryption endpoint error:', error);
+        return c.json({ 
+            success: false,
+            error: error.message,
+            timestamp: new Date().toISOString()
+        }, 400);
+    }
+})
+
 export default apiRoutes
