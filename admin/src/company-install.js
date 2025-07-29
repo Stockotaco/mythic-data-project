@@ -1,5 +1,59 @@
 import { Hono } from 'hono'
-import { initSupabase, createOrUpdateCompany } from './supabase/supabase.js'
+import { createClient } from '@supabase/supabase-js'
+
+// Function to create Supabase client with hardcoded values
+function createSupabaseClient() {
+    const supabaseUrl = 'https://ggjpdbelozvvmxezdyrs.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnanBkYmVsb3p2dm14ZXpkeXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3MDMyMywiZXhwIjoyMDYxNjQ2MzIzfQ.V6E4UGvxXMqANILkhCbpSMRox4z3_zTWRLUlZnYTSFo';
+    
+    return createClient(supabaseUrl, supabaseKey);
+}
+
+async function createOrUpdateCompany(supabase, companyId, companyName, accessToken, refreshToken, companyDetails) {
+    const { data, error } = await supabase
+        .from('company_keys')
+        .upsert({
+            id: companyId,
+            name: companyName,
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            email: companyDetails.email,
+            timezone: companyDetails.timezone,
+            relationship_number: companyDetails.relationshipNumber,
+            currency: companyDetails.currency,
+            customer_type: companyDetails.customerType,
+            date_added: companyDetails.dateAdded,
+            status: companyDetails.status,
+            location_count: companyDetails.locationCount,
+            phone: companyDetails.phone,
+            website: companyDetails.website,
+            domain: companyDetails.domain,
+            address: companyDetails.address,
+            city: companyDetails.city,
+            state: companyDetails.state,
+            country: companyDetails.country,
+            postal_code: companyDetails.postalCode,
+            logo_url: companyDetails.logoUrl,
+            subdomain: companyDetails.subdomain,
+            is_reselling: companyDetails.isReselling,
+            business_category: companyDetails.businessCategory,
+            business_niche: companyDetails.businessNiche,
+            default_sending_domain: companyDetails.defaultSendingDomain,
+            stripe_connect_id: companyDetails.stripeConnectId,
+            is_in_trial: companyDetails.isInTrial,
+            premium_upgraded: companyDetails.premiumUpgraded,
+            date_updated: companyDetails.dateUpdated
+        }, {
+            onConflict: 'id'
+        })
+
+    if (error) {
+        console.error('Error creating company:', error)
+        throw new Error('Failed to create company')
+    }
+
+    return data
+}
 
 async function installCompany(c, tokens) {
     const { companyId } = tokens
@@ -7,8 +61,8 @@ async function installCompany(c, tokens) {
     const refreshToken = tokens.refresh_token
 
     try {
-        // Initialize Supabase
-        initSupabase(c.env)
+        // Create Supabase client
+        const supabase = createSupabaseClient()
 
         // Step 1: Fetch company details from HighLevel API
         const response = await fetch(`https://services.leadconnectorhq.com/companies/${companyId}`, {
@@ -29,6 +83,7 @@ async function installCompany(c, tokens) {
 
         // Step 2: Store company info in Supabase
         await createOrUpdateCompany(
+            supabase,
             companyId,
             companyDetails.name,
             accessToken,

@@ -4,11 +4,11 @@ let supabase = null
 
 export function initSupabase(env) {
     if (!supabase) {
-        if (!env.SUPABASE_URL || !env.SUPABASE_KEY) {
+        if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
             throw new Error('Supabase environment variables are not configured')
         }
         console.log('Initializing Supabase with URL:', env.SUPABASE_URL)
-        supabase = createClient(env.SUPABASE_URL, env.SUPABASE_KEY)
+        supabase = createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
     }
     return supabase
 }

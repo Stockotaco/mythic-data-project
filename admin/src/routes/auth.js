@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import CryptoJS from 'crypto-js'
 import { upsertUserData, upsertUserLocation, upsertUserCompany } from '../utils/database.js'
 
-const embedRoutes = new Hono()
+const authRoutes = new Hono()
 
 // Function to create Supabase client with secrets from context
 function createSupabaseClient(c) {
@@ -19,45 +19,6 @@ function createSupabaseClient(c) {
     }
     
     return createClient(finalUrl, finalKey);
-}
-
-// Function to sign JWT using HMAC SHA256
-async function signJWT(payload, secret) {
-    if (!secret || secret.length === 0) {
-        console.error('JWT secret is empty or undefined');
-        // Return a basic signature as fallback
-        return 'fallback-signature';
-    }
-
-    try {
-        const encoder = new TextEncoder();
-        const data = encoder.encode(payload);
-        
-        // Decode the base64 secret key
-        const secretBytes = Uint8Array.from(atob(secret), c => c.charCodeAt(0));
-        
-        // Import the key for HMAC
-        const cryptoKey = await crypto.subtle.importKey(
-            'raw',
-            secretBytes,
-            { name: 'HMAC', hash: 'SHA-256' },
-            false,
-            ['sign']
-        );
-        
-        // Sign the payload
-        const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
-        
-        // Convert to base64url
-        const signatureArray = new Uint8Array(signature);
-        return btoa(String.fromCharCode(...signatureArray))
-            .replace(/\+/g, '-')
-            .replace(/\//g, '_')
-            .replace(/=/g, '');
-    } catch (error) {
-        console.error('JWT signing error:', error);
-        return 'error-signature';
-    }
 }
 
 // Shared key for decryption (from HighLevel)
@@ -88,8 +49,8 @@ function decryptUserData(encryptedUserData) {
 // Simple rate limiting store (in-memory, resets on worker restart)
 const rateLimitStore = new Map();
 
-// POST route for server-side authentication
-embedRoutes.post('/authenticate', async (c) => {
+// POST route for server-side authentication - now on /auth/authenticate
+authRoutes.post('/authenticate', async (c) => {
     try {
         // Basic rate limiting by IP
         const clientIP = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown';
@@ -311,7 +272,7 @@ embedRoutes.post('/authenticate', async (c) => {
         const accessToken = verifyData.session.access_token;
         const refreshToken = verifyData.session.refresh_token;
 
-        // Set the redirect URL
+        // Set the redirect URL - now redirect to the main app
         const redirectUrl = new URL('https://app.mythicdata.io/');
         redirectUrl.searchParams.append('embed', 'true');
 
@@ -336,7 +297,7 @@ embedRoutes.post('/authenticate', async (c) => {
             console.warn('Could not decode access token expiration, using default');
         }
 
-        // Set cookies with proper expiration matching JWT
+        // Set cookies for app.mythicdata.io domain
         const cookieOptions = `Domain=.mythicdata.io; Path=/; Max-Age=${accessTokenExpiry}; HttpOnly; Secure; SameSite=None`;
         const refreshCookieOptions = `Domain=.mythicdata.io; Path=/; Max-Age=${refreshTokenExpiry}; HttpOnly; Secure; SameSite=None`;
         
@@ -352,7 +313,8 @@ embedRoutes.post('/authenticate', async (c) => {
     }
 })
 
-embedRoutes.get('/', (c) => {
+// GET route for embed page - now on /auth/embed
+authRoutes.get('/embed', (c) => {
     return c.html(`
     <!DOCTYPE html>
     <html>
@@ -390,7 +352,7 @@ embedRoutes.get('/', (c) => {
                     const encryptedUserData = await getEncryptedUserData();
                     
                     // Send encrypted data to server for authentication
-                    const response = await fetch('/embed/authenticate', {
+                    const response = await fetch('/auth/authenticate', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
@@ -649,4 +611,4 @@ embedRoutes.get('/', (c) => {
     `)
 })
 
-export default embedRoutes
+export default authRoutes

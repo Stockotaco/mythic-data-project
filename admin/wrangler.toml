@@ -5,5 +5,6 @@ compatibility_date = "2024-03-20"
 compatibility_flags = [ "nodejs_compat" ]
 
 routes = [
-  { pattern = "admin.mythicdata.io", custom_domain = true }
+  { pattern = "admin.mythicdata.io", custom_domain = true },
+  { pattern = "app.mythicdata.io/auth/*", zone_name = "mythicdata.io" }
 ]
