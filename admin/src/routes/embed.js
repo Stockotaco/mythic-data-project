@@ -10,15 +10,11 @@ function createSupabaseClient(c) {
     const supabaseUrl = c.env?.SUPABASE_URL;
     const supabaseKey = c.env?.SUPABASE_SERVICE_ROLE_KEY;
     
-    // Use environment variables or fallback (for now until secrets work properly)
-    const finalUrl = supabaseUrl || 'https://ggjpdbelozvvmxezdyrs.supabase.co';
-    const finalKey = supabaseKey || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnanBkYmVsb3p2dm14ZXpkeXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3MDMyMywiZXhwIjoyMDYxNjQ2MzIzfQ.V6E4UGvxXMqANILkhCbpSMRox4z3_zTWRLUlZnYTSFo';
-    
     if (!supabaseUrl || !supabaseKey) {
-        console.warn('Supabase secrets not properly configured, using fallback values');
+        throw new Error('Supabase environment variables not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY using "wrangler secret put"');
     }
     
-    return createClient(finalUrl, finalKey);
+    return createClient(supabaseUrl, supabaseKey);
 }
 
 // Function to sign JWT using HMAC SHA256
@@ -60,11 +56,8 @@ async function signJWT(payload, secret) {
     }
 }
 
-// Shared key for decryption (from HighLevel)
-const SHARED_SECRET_KEY = '54d3b813-5e81-4704-a60b-5a4a6c9fa817'
-
 // Function to decrypt user data
-function decryptUserData(encryptedUserData) {
+function decryptUserData(encryptedUserData, sharedSecretKey) {
     try {
         // Process the hash: URL decode if needed, then fix base64 padding
         let processedHash = encryptedUserData;
@@ -77,7 +70,7 @@ function decryptUserData(encryptedUserData) {
         // Replace spaces with + signs for proper base64 format
         processedHash = processedHash.replace(/\s/g, '+');
 
-        const decrypted = CryptoJS.AES.decrypt(processedHash, SHARED_SECRET_KEY).toString(CryptoJS.enc.Utf8)
+        const decrypted = CryptoJS.AES.decrypt(processedHash, sharedSecretKey).toString(CryptoJS.enc.Utf8)
         const userData = JSON.parse(decrypted)
         return userData;
     } catch (error) {
@@ -133,14 +126,20 @@ embedRoutes.post('/authenticate', async (c) => {
 
         // Environment check (non-sensitive logging only)
         if (!c.env?.SUPABASE_URL || !c.env?.SUPABASE_SERVICE_ROLE_KEY) {
-            console.log('Using fallback Supabase configuration');
+            console.log('Missing Supabase environment variables');
         }
 
         // Create Supabase client with secrets from environment
         const supabase = createSupabaseClient(c);
 
+        // Get shared secret from environment
+        const sharedSecretKey = c.env?.HIGHLEVEL_SHARED_SECRET;
+        if (!sharedSecretKey) {
+            return c.json({ error: 'Server configuration error' }, 500);
+        }
+
         // Decrypt the user data
-        const userData = decryptUserData(encryptedUserData);
+        const userData = decryptUserData(encryptedUserData, sharedSecretKey);
         
         if (!userData.email) {
             return c.json({ error: 'No email found in user data' }, 400);
@@ -337,8 +336,8 @@ embedRoutes.post('/authenticate', async (c) => {
         }
 
         // Set cookies with proper expiration matching JWT
-        const cookieOptions = `Domain=.mythicdata.io; Path=/; Max-Age=${accessTokenExpiry}; HttpOnly; Secure; SameSite=None`;
-        const refreshCookieOptions = `Domain=.mythicdata.io; Path=/; Max-Age=${refreshTokenExpiry}; HttpOnly; Secure; SameSite=None`;
+        const cookieOptions = `Domain=.app.mythicdata.io; Path=/; Max-Age=${accessTokenExpiry}; HttpOnly; Secure; SameSite=None`;
+        const refreshCookieOptions = `Domain=.app.mythicdata.io; Path=/; Max-Age=${refreshTokenExpiry}; HttpOnly; Secure; SameSite=None`;
         
         // Set separate cookies for access_token and refresh_token
         response.headers.append('Set-Cookie', `access_token=${accessToken}; ${cookieOptions}`);

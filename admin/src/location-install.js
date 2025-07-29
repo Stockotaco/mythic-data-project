@@ -1,10 +1,14 @@
 import { Hono } from 'hono'
 import { createClient } from '@supabase/supabase-js'
 
-// Function to create Supabase client with hardcoded values
-function createSupabaseClient() {
-    const supabaseUrl = 'https://ggjpdbelozvvmxezdyrs.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnanBkYmVsb3p2dm14ZXpkeXJzIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0NjA3MDMyMywiZXhwIjoyMDYxNjQ2MzIzfQ.V6E4UGvxXMqANILkhCbpSMRox4z3_zTWRLUlZnYTSFo';
+// Function to create Supabase client with environment variables
+function createSupabaseClient(env) {
+    const supabaseUrl = env?.SUPABASE_URL;
+    const supabaseKey = env?.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase environment variables not configured. Please set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY using "wrangler secret put"');
+    }
     
     return createClient(supabaseUrl, supabaseKey);
 }
@@ -94,7 +98,7 @@ async function installLocation(c, tokens) {
 
     try {
         // Create Supabase client
-        const supabase = createSupabaseClient()
+        const supabase = createSupabaseClient(c.env)
 
         // Step 1: Fetch location details from HighLevel API
         console.log('Fetching location details for:', locationId)

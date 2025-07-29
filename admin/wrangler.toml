@@ -8,3 +8,12 @@ routes = [
   { pattern = "admin.mythicdata.io", custom_domain = true },
   { pattern = "app.mythicdata.io/auth/*", zone_name = "mythicdata.io" }
 ]
+
+# Environment variables
+[vars]
+SUPABASE_URL = "https://ggjpdbelozvvmxezdyrs.supabase.co"
+
+# Secrets are set using wrangler secret put:
+# wrangler secret put SUPABASE_SERVICE_ROLE_KEY  
+# wrangler secret put SUPABASE_KEY (anon key)
+# wrangler secret put JWT_SECRET
